@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VoterStatus {
+  pending
+  verified
+  rejected
+}
+
+enum ElectionState {
+  upcoming
+  ongoing
+  ended
+}
+
+model Admin {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  auditLogs AuditLog[]
+
+  @@map("admins")
+}
+
+model Voter {
+  matricNumber     String      @id @map("matric_number")
+  name             String
+  email            String      @unique
+  idCardUrl        String      @map("id_card_url")
+  status           VoterStatus @default(pending)
+  rejectionReason  String?     @map("rejection_reason")
+  hasVoted         Boolean     @default(false) @map("has_voted")
+  pinHash          String?     @map("pin_hash")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  @@map("voters")
+}
+
+model Candidate {
+  id        String   @id @default(uuid())
+  name      String
+  position  String
+  imageUrl  String?  @map("image_url")
+  manifesto String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  votes Vote[]
+
+  @@map("candidates")
+}
+
+/// No foreign key to Voter — this is deliberate, preserves ballot secrecy.
+model Vote {
+  id          String   @id @default(uuid())
+  candidateId String   @map("candidate_id")
+  position    String
+  castAt      DateTime @map("cast_at")
+  /// Hash-chain fields for tamper-evidence — every vote links to the hash
+  /// of the one before it, so altering or deleting a past row breaks the
+  /// chain and is detectable by anyone who recomputes it.
+  prevHash    String   @map("prev_hash")
+  hash        String   @unique
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@map("votes")
+}
+
+/// Singleton row (id is always 1) that anchors the vote hash chain.
+/// Reading it with SELECT ... FOR UPDATE inside the vote-cast transaction
+/// serializes concurrent ballot submissions so the chain can never fork.
+model VoteChainState {
+  id         Int    @id @default(1)
+  latestHash String @default("GENESIS") @map("latest_hash")
+
+  @@map("vote_chain_state")
+}
+
+/// Separate from Vote — proves "this student voted" without revealing choice
+model VoteReceipt {
+  id          String   @id @default(uuid())
+  receiptHash String   @unique @map("receipt_hash")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("vote_receipts")
+}
+
+model ElectionConfig {
+  id        Int           @id @default(1)
+  state     ElectionState @default(upcoming)
+  startTime DateTime?     @map("start_time")
+  endTime   DateTime?     @map("end_time")
+
+  @@map("election_config")
+}
+
+/// Insert-only audit trail for every admin action
+model AuditLog {
+  id        String   @id @default(uuid())
+  adminId   String   @map("admin_id")
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  admin Admin @relation(fields: [adminId], references: [id])
+
+  @@map("audit_logs")
+}
