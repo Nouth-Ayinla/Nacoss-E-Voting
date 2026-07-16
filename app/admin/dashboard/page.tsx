@@ -36,9 +36,14 @@ export default function VoterVerificationPage() {
 
   const loadVoters = useCallback(async () => {
     setIsLoading(true);
-    const res = await fetch(`/api/voters?status=${statusFilter}`);
-    const data = await res.json();
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/voters?status=${statusFilter}`);
+      if (!res.ok) {
+        console.error("Voters API error:", res.status, await res.text().catch(() => ""));
+        setIsLoading(false);
+        return;
+      }
+      const data = await res.json();
       setVoters(data.voters);
       setCounts(data.counts);
       setSelected((prev) => {
@@ -47,8 +52,11 @@ export default function VoterVerificationPage() {
         }
         return data.voters[0] ?? null;
       });
+    } catch (err) {
+      console.error("Failed to parse voters response:", err);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [statusFilter]);
 
   useEffect(() => {
