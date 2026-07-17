@@ -36,7 +36,7 @@ export async function sendRegistrationReceivedEmail(to: string, name: string) {
   const htmlContent = `
     <p>Hello ${name},</p>
     <p>We have received your voter registration for the NACOSS Elections.</p>
-    <p>Our administrators are currently verifying your student credentials and uploaded ID card. You will receive another email as soon as your account has been reviewed.</p>
+    <p>Our administrators are currently verifying your student credentials and uploaded verification document. You will receive another email as soon as your account has been reviewed.</p>
     <p>Thank you,</p>
     <p>NACOSS Electoral Committee</p>
   `;
@@ -70,7 +70,7 @@ export async function sendVerificationResultEmail(
         <p>Hello,</p>
         <p>Your voter registration was rejected.</p>
         <p><strong>Reason for rejection:</strong> ${pinOrReason ?? "Not specified."}</p>
-        <p>Please re-register at the portal with your correct credentials and a clear photo of your student ID card.</p>
+        <p>Please re-register at the portal with your correct credentials and a clear copy of your student ID card or course form.</p>
         <p>Thank you,</p>
         <p>NACOSS Electoral Committee</p>
       `;

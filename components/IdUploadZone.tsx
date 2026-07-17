@@ -9,10 +9,12 @@ export default function IdUploadZone({
   file,
   onFileSelect,
   error,
+  documentType = "idcard",
 }: {
   file: File | null;
   onFileSelect: (file: File | null) => void;
   error?: string | null;
+  documentType?: "idcard" | "courseform";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -92,7 +94,7 @@ export default function IdUploadZone({
     <div className="space-y-stack-md">
       <div className="space-y-stack-xs">
         <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">
-          Student ID Verification
+          {documentType === "courseform" ? "Course Form Verification" : "Student ID Verification"}
         </label>
         <div
           onClick={() => inputRef.current?.click()}
@@ -134,7 +136,7 @@ export default function IdUploadZone({
             attachment
           </span>
           <p className="font-body-md text-body-md text-on-surface-variant group-hover:text-charcoal-slate text-center font-medium">
-            Drag &amp; Drop Student ID Card
+            {documentType === "courseform" ? "Drag & Drop Course Form" : "Drag & Drop Student ID Card"}
           </p>
           <p className="font-label-caps text-[10px] text-outline mt-1 uppercase">
             Max Size: 5MB (JPG, PNG, PDF)
@@ -175,7 +177,9 @@ export default function IdUploadZone({
         <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl">
             <div className="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface">
-              <h3 className="font-headline-md text-on-surface font-semibold">Capture ID Card</h3>
+              <h3 className="font-headline-md text-on-surface font-semibold">
+                {documentType === "courseform" ? "Capture Course Form" : "Capture ID Card"}
+              </h3>
               <button
                 type="button"
                 onClick={stopCamera}
@@ -194,7 +198,7 @@ export default function IdUploadZone({
               {/* Overlay Guideline */}
               <div className="absolute inset-6 border-2 border-dashed border-white/60 rounded-xl pointer-events-none flex flex-col items-center justify-end pb-4">
                 <span className="text-white text-[12px] bg-black/50 px-3 py-1.5 rounded-full font-medium tracking-wide">
-                  Align ID card inside frame
+                  {documentType === "courseform" ? "Align course form inside frame" : "Align ID card inside frame"}
                 </span>
               </div>
             </div>

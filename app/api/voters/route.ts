@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       name: true,
       email: true,
       idCardUrl: true,
+      documentType: true,
       status: true,
       rejectionReason: true,
       hasVoted: true,

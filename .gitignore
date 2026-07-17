@@ -9,3 +9,5 @@ next-env.d.ts
 # Prisma / seeding
 seed.ts
 prisma/seed.ts
+
+*.tsbuildinfo

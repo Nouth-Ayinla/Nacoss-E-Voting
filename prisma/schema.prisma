@@ -19,6 +19,11 @@ enum ElectionState {
   ended
 }
 
+enum DocumentType {
+  idcard
+  courseform
+}
+
 model Admin {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -32,15 +37,16 @@ model Admin {
 }
 
 model Voter {
-  matricNumber     String      @id @map("matric_number")
+  matricNumber     String       @id @map("matric_number")
   name             String
-  email            String      @unique
-  idCardUrl        String      @map("id_card_url")
-  status           VoterStatus @default(pending)
-  rejectionReason  String?     @map("rejection_reason")
-  hasVoted         Boolean     @default(false) @map("has_voted")
-  pinHash          String?     @map("pin_hash")
-  createdAt        DateTime    @default(now()) @map("created_at")
+  email            String       @unique
+  idCardUrl        String       @map("id_card_url")
+  documentType     DocumentType @default(idcard) @map("document_type")
+  status           VoterStatus  @default(pending)
+  rejectionReason  String?      @map("rejection_reason")
+  hasVoted         Boolean      @default(false) @map("has_voted")
+  pinHash          String?      @map("pin_hash")
+  createdAt        DateTime     @default(now()) @map("created_at")
 
   @@map("voters")
 }

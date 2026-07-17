@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [matricNumber, setMatricNumber] = useState("");
+  const [documentType, setDocumentType] = useState<"idcard" | "courseform">("idcard");
   const [idFile, setIdFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,7 +32,7 @@ export default function RegisterPage() {
 
     if (!matricNumber.trim()) return;
     if (!idFile) {
-      setFileError("Please attach your student ID card.");
+      setFileError(documentType === "courseform" ? "Please attach your course form." : "Please attach your student ID card.");
       return;
     }
 
@@ -41,6 +42,7 @@ export default function RegisterPage() {
       formData.append("matricNumber", matricNumber.trim());
       formData.append("name", fullName.trim());
       formData.append("email", email.trim());
+      formData.append("documentType", documentType);
       formData.append("idCard", idFile);
 
       const res = await fetch("/api/voters/register", {
@@ -156,7 +158,53 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <IdUploadZone file={idFile} onFileSelect={(f) => { setIdFile(f); setFileError(null); }} error={fileError} />
+              <div className="space-y-stack-xs">
+                <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">
+                  Verification Document
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-surface-container-low p-1 rounded-lg border border-outline-variant">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDocumentType("idcard");
+                      setIdFile(null);
+                      setFileError(null);
+                    }}
+                    className={`py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${
+                      documentType === "idcard"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-on-surface-variant hover:text-charcoal-slate hover:bg-surface-container-high"
+                    }`}
+                  >
+                    Student ID Card
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDocumentType("courseform");
+                      setIdFile(null);
+                      setFileError(null);
+                    }}
+                    className={`py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${
+                      documentType === "courseform"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-on-surface-variant hover:text-charcoal-slate hover:bg-surface-container-high"
+                    }`}
+                  >
+                    Course Form
+                  </button>
+                </div>
+              </div>
+
+              <IdUploadZone
+                file={idFile}
+                onFileSelect={(f) => {
+                  setIdFile(f);
+                  setFileError(null);
+                }}
+                error={fileError}
+                documentType={documentType}
+              />
 
               {submitError && (
                 <div className="bg-error-container text-on-error-container rounded px-4 py-3 text-body-sm">

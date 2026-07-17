@@ -9,6 +9,7 @@ export const voterRegistrationSchema = z.object({
   matricNumber: matricNumberSchema,
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email(),
+  documentType: z.enum(["idcard", "courseform"]).default("idcard"),
   // idCardUrl is set server-side after upload — never trust a client-supplied URL
 });
 

@@ -8,6 +8,7 @@ type Voter = {
   name: string;
   email: string;
   idCardUrl: string;
+  documentType: "idcard" | "courseform";
   status: "pending" | "verified" | "rejected";
   rejectionReason: string | null;
   hasVoted: boolean;
@@ -33,13 +34,15 @@ export default function VoterVerificationPage() {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [statusFilter, setStatusFilter] = useState<"pending" | "verified" | "rejected">("pending");
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const loadVoters = useCallback(async () => {
     setIsLoading(true);
+    setApiError(null);
     try {
       const res = await fetch(`/api/voters?status=${statusFilter}`);
       if (!res.ok) {
-        console.error("Voters API error:", res.status, await res.text().catch(() => ""));
+        setApiError("Database or network connection failed. Check database logs.");
         setIsLoading(false);
         return;
       }
@@ -53,6 +56,7 @@ export default function VoterVerificationPage() {
         return data.voters[0] ?? null;
       });
     } catch (err) {
+      setApiError("Unable to reach the server. Please verify your internet connection.");
       console.error("Failed to parse voters response:", err);
     } finally {
       setIsLoading(false);
@@ -152,7 +156,18 @@ export default function VoterVerificationPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Voter list */}
         <section className={`flex-1 overflow-y-auto border-r border-outline-variant bg-surface ${selected ? "hidden md:block" : ""}`}>
-          {isLoading ? (
+          {apiError ? (
+            <div className="p-gutter text-center py-12 flex flex-col items-center justify-center space-y-4">
+              <span className="material-symbols-outlined text-error text-[48px]">wifi_off</span>
+              <p className="text-on-surface-variant font-body-md max-w-xs">{apiError}</p>
+              <button
+                onClick={loadVoters}
+                className="bg-primary text-white px-5 py-2 rounded-full font-semibold hover:brightness-110 active:scale-95 transition-all text-xs"
+              >
+                Retry Connection
+              </button>
+            </div>
+          ) : isLoading ? (
             <p className="p-gutter text-on-surface-variant">Loading...</p>
           ) : voters.length === 0 ? (
             <p className="p-gutter text-on-surface-variant">No registrations found in this category.</p>
@@ -305,15 +320,33 @@ export default function VoterVerificationPage() {
                   </div>
                   <div>
                     <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2 uppercase">
-                      Student ID Card
+                      {selected.documentType === "courseform" ? "Course Form Document" : "Student ID Card"}
                     </label>
                     <div className="aspect-[1.6/1] border-2 border-dashed border-outline rounded-lg overflow-hidden bg-surface-container-low">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
-                        alt="Uploaded student ID"
-                        className="w-full h-full object-cover"
-                      />
+                      {selected.idCardUrl.toLowerCase().endsWith(".pdf") ? (
+                        <div className="flex flex-col items-center justify-center text-center p-4 w-full h-full space-y-3">
+                          <span className="material-symbols-outlined text-[48px] text-error">picture_as_pdf</span>
+                          <span className="font-body-sm text-on-surface font-medium truncate max-w-full px-2">
+                            PDF Document
+                          </span>
+                          <a
+                            href={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-primary text-white px-4 py-2 rounded-full font-semibold hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5"
+                          >
+                            <span className="material-symbols-outlined text-sm">open_in_new</span>
+                            Open PDF in New Tab
+                          </a>
+                        </div>
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
+                          alt="Uploaded verification document"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

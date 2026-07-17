@@ -13,24 +13,28 @@ export async function POST(req: NextRequest) {
     matricNumber: formData.get("matricNumber"),
     name: formData.get("name"),
     email: formData.get("email"),
+    documentType: formData.get("documentType") || undefined,
   });
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const { matricNumber, name, email, documentType } = parsed.data;
+
   const file = formData.get("idCard") as File | null;
   if (!file) {
-    return NextResponse.json({ error: "ID card photo is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: documentType === "courseform" ? "Course form document is required" : "ID card photo is required" },
+      { status: 400 }
+    );
   }
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-    return NextResponse.json({ error: "File must be JPEG, PNG, or WebP" }, { status: 400 });
+    return NextResponse.json({ error: "File must be JPEG, PNG, WebP, or PDF" }, { status: 400 });
   }
   if (file.size > MAX_FILE_SIZE) {
     return NextResponse.json({ error: "File must be under 5MB" }, { status: 400 });
   }
-
-  const { matricNumber, name, email } = parsed.data;
 
   const existing = await db.voter.findFirst({
     where: { OR: [{ matricNumber }, { email }] },
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
   const idCardUrl = await uploadIdCard(file, matricNumber);
 
   const voter = await db.voter.create({
-    data: { matricNumber, name, email, idCardUrl, status: "pending" },
+    data: { matricNumber, name, email, idCardUrl, documentType, status: "pending" },
   });
 
   await sendRegistrationReceivedEmail(voter.email, voter.name);
