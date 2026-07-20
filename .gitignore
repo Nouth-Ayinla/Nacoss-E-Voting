@@ -11,3 +11,4 @@ seed.ts
 prisma/seed.ts
 
 *.tsbuildinfo
+test-conn.js

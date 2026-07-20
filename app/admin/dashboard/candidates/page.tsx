@@ -272,7 +272,7 @@ export default function CandidateManagementPage() {
                     <div className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant font-bold flex-shrink-0 overflow-hidden">
                       {candidate.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={candidate.imageUrl} alt={candidate.name} className="w-full h-full object-cover" />
+                        <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       ) : (
                         candidate.name
                           .split(" ")

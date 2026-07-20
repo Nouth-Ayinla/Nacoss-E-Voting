@@ -21,13 +21,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return NextResponse.json({ error: "Bad Request: You cannot delete your own account" }, { status: 400 });
   }
 
-  // Prevent deletion of the target admin if it's the target email "shawolhorizon@gmail.com"
   const targetAdmin = await db.admin.findUnique({ where: { id } });
   if (!targetAdmin) {
     return NextResponse.json({ error: "Administrator not found" }, { status: 404 });
   }
 
-  if (targetAdmin.email === "shawolhorizon@gmail.com") {
+  // Prevent deletion of primary superadmin if configured in environment variables
+  const primarySuperadminEmail = process.env.SUPERADMIN_PRIMARY_EMAIL;
+  if (primarySuperadminEmail && targetAdmin.email.toLowerCase() === primarySuperadminEmail.toLowerCase()) {
     return NextResponse.json({ error: "Forbidden: The primary superadmin account cannot be deleted" }, { status: 403 });
   }
 

@@ -59,9 +59,8 @@ export default function LandingPage() {
       if (res.ok) {
         const data = await res.json();
         setStatusResult(data.status);
-        if (data.rejectionReason) {
-          setRejectionReason(data.rejectionReason);
-        }
+        // Rejection reason is no longer returned from the public endpoint
+        // (it is delivered privately to the voter's email by the admin)
       } else {
         setStatusResult("not_found");
       }
@@ -332,7 +331,7 @@ export default function LandingPage() {
                                 <div className="w-14 h-14 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-primary/20 text-lg shadow-inner">
                                   {candidate.imageUrl ? (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={candidate.imageUrl} alt={candidate.name} className="w-full h-full object-cover" />
+                                    <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                   ) : (
                                     candidate.name
                                       .split(" ")

@@ -8,12 +8,22 @@ import { NextRequest, NextResponse } from "next/server";
 // OTP request/verify gate to unauthenticated voters — redirecting away
 // at the edge would prevent them from ever reaching that gate.
 
-export function middleware(req: NextRequest) {
+import { jwtVerify } from "jose";
+
+const ADMIN_SECRET = new TextEncoder().encode(process.env.ADMIN_JWT_SECRET!);
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/admin/dashboard")) {
-    const adminSession = req.cookies.get("admin_session");
+    const adminSession = req.cookies.get("admin_session")?.value;
     if (!adminSession) {
+      return NextResponse.redirect(new URL("/admin/login", req.url));
+    }
+
+    try {
+      await jwtVerify(adminSession, ADMIN_SECRET);
+    } catch {
       return NextResponse.redirect(new URL("/admin/login", req.url));
     }
   }

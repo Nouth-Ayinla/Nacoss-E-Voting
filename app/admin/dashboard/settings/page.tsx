@@ -283,8 +283,8 @@ export default function AdminSettingsPage() {
                 ) : (
                   admins.map((adm) => {
                     const isSelf = adm.email === email;
-                    const isPrimarySuperAdmin = adm.email === "shawolhorizon@gmail.com";
                     const isSuper = adm.role === "superadmin";
+                    const isLastSuperAdmin = isSuper && admins.filter((a) => a.role === "superadmin").length <= 1;
 
                     return (
                       <tr key={adm.id} className="hover:bg-surface-container-lowest transition-colors">
@@ -311,7 +311,7 @@ export default function AdminSettingsPage() {
                         </td>
                         {isSuperAdmin && (
                           <td className="px-6 py-4 text-right">
-                            {isSelf || isPrimarySuperAdmin ? (
+                            {isSelf || isLastSuperAdmin ? (
                               <span className="text-[11px] text-outline italic pr-2">
                                 Protected
                               </span>

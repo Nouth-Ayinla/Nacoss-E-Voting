@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/session";
-import { candidateSchema } from "@/lib/validation";
+import { candidateSchema, verifyBase64ImageMagic } from "@/lib/validation";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await verifyAdminSession();
@@ -12,6 +12,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const parsed = candidateSchema.partial().safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  // Verify magic bytes if a base64 data URI is provided
+  if (parsed.data.imageUrl?.startsWith("data:")) {
+    if (!verifyBase64ImageMagic(parsed.data.imageUrl)) {
+      return NextResponse.json(
+        { error: "Image file is corrupt or does not match its declared type." },
+        { status: 400 }
+      );
+    }
   }
 
   const candidate = await db.candidate.update({ where: { id }, data: parsed.data });

@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(`voter-status:${ip}`, 10, 60 * 1000);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: `Rate limit exceeded. Please wait ${rateCheck.retryAfterSeconds} seconds.` },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const matricNumber = searchParams.get("matricNumber");
 
@@ -24,9 +34,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       status: voter.status,
-      rejectionReason: voter.rejectionReason,
+      // Rejection reason is intentionally omitted from this unauthenticated
+      // endpoint to prevent enumeration of sensitive admin decisions.
+      // The reason is delivered privately to the voter's registered email.
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

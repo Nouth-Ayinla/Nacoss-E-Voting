@@ -3,11 +3,57 @@ import { db } from "@/lib/db";
 import { voterRegistrationSchema } from "@/lib/validation";
 import { uploadIdCard } from "@/lib/storage";
 import { sendRegistrationReceivedEmail } from "@/lib/email";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const DAILY_REGISTRATION_LIMIT = 120;
+
+export async function GET() {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const todayCount = await db.voter.count({
+    where: {
+      createdAt: { gte: startOfDay },
+    },
+  });
+
+  return NextResponse.json({
+    dailyCount: todayCount,
+    dailyLimit: DAILY_REGISTRATION_LIMIT,
+    remaining: Math.max(0, DAILY_REGISTRATION_LIMIT - todayCount),
+    isFull: todayCount >= DAILY_REGISTRATION_LIMIT,
+  });
+}
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(`voter-register:${ip}`, 5, 60 * 1000);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: `Too many registration attempts. Please wait ${rateCheck.retryAfterSeconds} seconds.` },
+      { status: 429 }
+    );
+  }
+
+  // Daily registration limit check (capped at 120 per day, resets at 00:00 AM)
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const todayCount = await db.voter.count({
+    where: {
+      createdAt: { gte: startOfDay },
+    },
+  });
+
+  if (todayCount >= DAILY_REGISTRATION_LIMIT) {
+    return NextResponse.json(
+      { error: `Daily registration limit reached (120/120). Registration resets tomorrow at 00:00 AM.` },
+      { status: 429 }
+    );
+  }
+
   const formData = await req.formData();
   const parsed = voterRegistrationSchema.safeParse({
     matricNumber: formData.get("matricNumber"),
@@ -46,8 +92,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Upload to private object storage — idCardUrl stores the storage KEY,
-  // never a public URL. Admins view it via a short-lived signed URL only.
   const idCardUrl = await uploadIdCard(file, matricNumber);
 
   try {
@@ -67,7 +111,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Voter registration transaction failed:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to register voter and send email." },
+      { error: "Failed to register voter. Please verify details and try again." },
       { status: 500 }
     );
   }

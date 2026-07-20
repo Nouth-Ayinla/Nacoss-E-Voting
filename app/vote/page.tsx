@@ -246,7 +246,7 @@ export default function VotePage() {
                 <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-outline-variant bg-surface-container">
                   {candidate.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={candidate.imageUrl} alt={candidate.name} className="w-full h-full object-cover" />
+                    <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-on-surface-variant font-bold">
                       {candidate.name

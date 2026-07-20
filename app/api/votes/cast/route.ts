@@ -28,7 +28,25 @@ export async function POST(req: NextRequest) {
 
   try {
     const receiptHash = await db.$transaction(async (tx) => {
-      // Atomic check-and-set: UPDATE ... WHERE has_voted = FALSE is a single
+      // 1. Verify election state is ongoing
+      const config = await tx.electionConfig.findUnique({ where: { id: 1 } });
+      if (config?.state !== "ongoing") {
+        throw new Error("ELECTION_NOT_ONGOING");
+      }
+
+      // 2. Validate candidate position integrity
+      for (const vote of votes) {
+        const candidate = await tx.candidate.findUnique({
+          where: { id: vote.candidateId },
+          select: { id: true, position: true },
+        });
+
+        if (!candidate || candidate.position !== vote.position) {
+          throw new Error("INVALID_CANDIDATE_POSITION");
+        }
+      }
+
+      // 3. Atomic check-and-set: UPDATE ... WHERE has_voted = FALSE is a single
       // row-locked operation. If 0 rows are affected, this voter already
       // voted (or was never eligible) — no separate SELECT-then-UPDATE race.
       const updateResult = await tx.$executeRaw`
@@ -42,16 +60,12 @@ export async function POST(req: NextRequest) {
       }
 
       // Lock the chain anchor row for the duration of this transaction.
-      // This is what prevents two concurrent vote-casts from both reading
-      // the same "latest hash" and forking the chain — the second
-      // transaction blocks here until the first commits or rolls back.
       const anchor = await tx.$queryRaw<{ latest_hash: string }[]>`
         SELECT latest_hash FROM vote_chain_state WHERE id = 1 FOR UPDATE
       `;
       let runningHash = anchor[0]?.latest_hash ?? "GENESIS";
 
       // Insert anonymous ballots, chaining each one to the hash before it.
-      // No link to matricNumber anywhere in this table.
       for (const vote of votes) {
         const castAt = new Date();
         const hash = computeVoteHash(runningHash, vote.candidateId, vote.position, castAt);
@@ -69,17 +83,16 @@ export async function POST(req: NextRequest) {
         runningHash = hash;
       }
 
-      // Advance the anchor so the next transaction (once it acquires the lock)
-      // chains from here.
+      // Advance the anchor so the next transaction chains from here.
       await tx.$executeRaw`
         UPDATE vote_chain_state SET latest_hash = ${runningHash} WHERE id = 1
       `;
 
-      // Separate, unlinked receipt proving "this student voted" without
-      // revealing what they voted for.
+      const electionSalt = process.env.ELECTION_SALT;
+      if (!electionSalt) throw new Error("ELECTION_SALT environment variable is not set.");
       const receipt = crypto
         .createHash("sha256")
-        .update(`${matricNumber}:${process.env.ELECTION_SALT}:${Date.now()}`)
+        .update(`${matricNumber}:${electionSalt}:${Date.now()}`)
         .digest("hex");
 
       await tx.voteReceipt.create({ data: { receiptHash: receipt } });
@@ -87,22 +100,36 @@ export async function POST(req: NextRequest) {
       return receipt;
     });
 
-    destroyVoterSession();
+    await destroyVoterSession();
 
     return NextResponse.json({
       message: "Vote cast successfully.",
       receipt: receiptHash,
     });
   } catch (err) {
-    if (err instanceof Error && err.message === "ALREADY_VOTED_OR_INELIGIBLE") {
-      destroyVoterSession();
-      return NextResponse.json(
-        { error: "This voter has already cast a ballot or is not eligible." },
-        { status: 403 }
-      );
+    if (err instanceof Error) {
+      if (err.message === "ALREADY_VOTED_OR_INELIGIBLE") {
+        await destroyVoterSession();
+        return NextResponse.json(
+          { error: "This voter has already cast a ballot or is not eligible." },
+          { status: 403 }
+        );
+      }
+      if (err.message === "ELECTION_NOT_ONGOING") {
+        await destroyVoterSession();
+        return NextResponse.json(
+          { error: "Election is not currently active for voting." },
+          { status: 403 }
+        );
+      }
+      if (err.message === "INVALID_CANDIDATE_POSITION") {
+        return NextResponse.json(
+          { error: "Ballot validation failed: candidate does not match position." },
+          { status: 400 }
+        );
+      }
     }
     console.error("Vote transaction failed:", err);
     return NextResponse.json({ error: "Vote could not be recorded. Try again." }, { status: 500 });
   }
 }
-

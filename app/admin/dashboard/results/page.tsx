@@ -129,7 +129,7 @@ export default function ResultsPage() {
                                   <div className="w-14 h-14 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden text-lg shadow-inner">
                                     {candidate.imageUrl ? (
                                       // eslint-disable-next-line @next/next/no-img-element
-                                      <img src={candidate.imageUrl} alt={candidate.name} className="w-full h-full object-cover" />
+                                      <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                     ) : (
                                       candidate.name
                                         .split(" ")

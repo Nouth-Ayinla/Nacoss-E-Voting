@@ -3,8 +3,14 @@ import { db } from "@/lib/db";
 import { verifyAdminSession } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
-  const admin = await verifyAdminSession();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await verifyAdminSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Verify superadmin privilege
+  const requester = await db.admin.findUnique({ where: { id: session.adminId } });
+  if (!requester || requester.role !== "superadmin") {
+    return NextResponse.json({ error: "Forbidden: Only superadmins can view audit logs" }, { status: 403 });
+  }
 
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") ?? 50), 200);
 

@@ -3,8 +3,18 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { createAdminSession } from "@/lib/session";
 import { adminLoginSchema } from "@/lib/validation";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(`admin-login:${ip}`, 5, 60 * 1000);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: `Too many login attempts. Please try again in ${rateCheck.retryAfterSeconds} seconds.` },
+      { status: 429 }
+    );
+  }
+
   const body = await req.json();
   const parsed = adminLoginSchema.safeParse(body);
   if (!parsed.success) {
@@ -22,10 +32,7 @@ export async function POST(req: NextRequest) {
   const passwordMatches = await bcrypt.compare(password, admin.passwordHash);
   if (!passwordMatches) return invalidResponse;
 
-
-
   await createAdminSession(admin.id);
 
   return NextResponse.json({ message: "Logged in." });
 }
-

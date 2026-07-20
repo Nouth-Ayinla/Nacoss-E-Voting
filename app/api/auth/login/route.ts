@@ -3,12 +3,42 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { createVoterSession } from "@/lib/session";
 import { voterLoginSchema } from "@/lib/validation";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(`voter-login:${ip}`, 5, 60 * 1000);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: `Too many login attempts. Please try again in ${rateCheck.retryAfterSeconds} seconds.` },
+      { status: 429 }
+    );
+  }
+
   const body = await req.json();
   const parsed = voterLoginSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  // Per-matric rate limit: caps distributed attacks targeting one specific voter
+  // across many IP addresses. 10 attempts per 15 minutes per matric number.
+  const matricRateCheck = checkRateLimit(`voter-login-matric:${parsed.data.matricNumber}`, 10, 15 * 60 * 1000);
+  if (!matricRateCheck.success) {
+    return NextResponse.json(
+      { error: `Too many login attempts for this account. Please try again in ${matricRateCheck.retryAfterSeconds} seconds.` },
+      { status: 429 }
+    );
+  }
+
+  // Verify election state is ongoing
+  const config = await db.electionConfig.findUnique({ where: { id: 1 } });
+  const electionState = config?.state ?? "upcoming";
+  if (electionState !== "ongoing") {
+    return NextResponse.json(
+      { error: `Voting is currently unavailable (${electionState} phase).` },
+      { status: 403 }
+    );
   }
 
   const { matricNumber, pin } = parsed.data;

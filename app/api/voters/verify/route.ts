@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Voter verification transaction failed:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to verify voter and send email." },
+      { error: "Failed to verify voter and send notification email." },
       { status: 500 }
     );
   }
