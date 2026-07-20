@@ -104,6 +104,25 @@ export default function CandidateManagementPage() {
     return acc;
   }, {});
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image file size must be less than 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setForm((f) => ({ ...f, imageUrl: event.target!.result as string }));
+        setError(null);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <>
       <AdminHeader title="Candidate Management" />
@@ -141,7 +160,7 @@ export default function CandidateManagementPage() {
               </div>
               <div className="space-y-1">
                 <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">
-                  Position
+                  Position / Executive Post
                 </label>
                 <input
                   className="w-full h-11 px-3 border border-outline-variant rounded focus:border-primary transition-all"
@@ -151,17 +170,58 @@ export default function CandidateManagementPage() {
                   required
                 />
               </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">
-                  Photo URL <span className="normal-case text-outline">(optional)</span>
+
+              {/* Photo Upload & Preview Component */}
+              <div className="space-y-2 md:col-span-2">
+                <label className="font-label-caps text-label-caps text-on-surface-variant uppercase flex items-center justify-between">
+                  <span>Candidate Photo</span>
+                  <span className="normal-case text-outline text-xs">Upload Image File or Paste URL</span>
                 </label>
-                <input
-                  className="w-full h-11 px-3 border border-outline-variant rounded focus:border-primary transition-all"
-                  placeholder="https://..."
-                  value={form.imageUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
-                />
+
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-surface-container-low p-4 rounded-xl border border-outline-variant">
+                  {/* Photo Avatar Preview */}
+                  <div className="w-16 h-16 rounded-full bg-white border-2 border-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                    {form.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="material-symbols-outlined text-outline text-2xl">person</span>
+                    )}
+                  </div>
+
+                  <div className="flex-grow space-y-2 w-full">
+                    <div className="flex items-center gap-3">
+                      <label className="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg cursor-pointer hover:bg-primary/95 transition-all flex items-center gap-2 shadow-sm">
+                        <span className="material-symbols-outlined text-base">cloud_upload</span>
+                        Upload Image File
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      {form.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+                          className="text-xs text-error font-medium hover:underline flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span> Remove Photo
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      className="w-full h-9 px-3 text-xs bg-white border border-outline-variant rounded focus:border-primary transition-all font-mono"
+                      placeholder="Or paste direct image URL (https://...)"
+                      value={form.imageUrl}
+                      onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                    />
+                  </div>
+                </div>
               </div>
+
               <div className="space-y-1 md:col-span-2">
                 <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">
                   Manifesto <span className="normal-case text-outline">(optional)</span>

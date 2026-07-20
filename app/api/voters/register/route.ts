@@ -50,14 +50,25 @@ export async function POST(req: NextRequest) {
   // never a public URL. Admins view it via a short-lived signed URL only.
   const idCardUrl = await uploadIdCard(file, matricNumber);
 
-  const voter = await db.voter.create({
-    data: { matricNumber, name, email, idCardUrl, documentType, status: "pending" },
-  });
+  try {
+    const voter = await db.$transaction(async (tx) => {
+      const createdVoter = await tx.voter.create({
+        data: { matricNumber, name, email, idCardUrl, documentType, status: "pending" },
+      });
 
-  await sendRegistrationReceivedEmail(voter.email, voter.name);
+      await sendRegistrationReceivedEmail(createdVoter.email, createdVoter.name);
+      return createdVoter;
+    });
 
-  return NextResponse.json({
-    message: "Registration submitted. Await admin verification.",
-    matricNumber: voter.matricNumber,
-  });
+    return NextResponse.json({
+      message: "Registration submitted. Await admin verification.",
+      matricNumber: voter.matricNumber,
+    });
+  } catch (error: any) {
+    console.error("Voter registration transaction failed:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to register voter and send email." },
+      { status: 500 }
+    );
+  }
 }

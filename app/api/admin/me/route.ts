@@ -8,9 +8,9 @@ export async function GET() {
 
   const admin = await db.admin.findUnique({
     where: { id: session.adminId },
-    select: { email: true },
+    select: { email: true, role: true },
   });
   if (!admin) return NextResponse.json({ error: "Admin not found" }, { status: 404 });
 
-  return NextResponse.json({ email: admin.email });
+  return NextResponse.json({ email: admin.email, role: admin.role });
 }

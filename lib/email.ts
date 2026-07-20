@@ -4,27 +4,49 @@ const SENDER_NAME = process.env.BREVO_SENDER_NAME || "NACOSS Elections";
 
 async function sendEmail(to: string, subject: string, htmlContent: string) {
   if (!BREVO_API_KEY) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("==================== [DEV EMAIL LOG] ====================");
+      console.log(`To: ${to}`);
+      console.log(`Subject: ${subject}`);
+      console.log(`Content:\n${htmlContent}`);
+      console.log("=======================================================");
+      return;
+    }
     throw new Error("BREVO_API_KEY is not defined in environment variables.");
   }
 
-  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "accept": "application/json",
-      "api-key": BREVO_API_KEY,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-      to: [{ email: to }],
-      subject: subject,
-      htmlContent: htmlContent,
-    }),
-  });
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+        to: [{ email: to }],
+        subject: subject,
+        htmlContent: htmlContent,
+      }),
+    });
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(`Brevo API Error: ${JSON.stringify(errorData)}`);
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(`Brevo API Error: ${JSON.stringify(errorData)}`);
+    }
+  } catch (error: any) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Failed to send email via Brevo in development mode. Falling back to console logging.");
+      console.warn(`Reason: ${error.message || error}`);
+      console.log("==================== [DEV EMAIL LOG] ====================");
+      console.log(`To: ${to}`);
+      console.log(`Subject: ${subject}`);
+      console.log(`Content:\n${htmlContent}`);
+      console.log("=======================================================");
+      return;
+    }
+    throw error;
   }
 }
 

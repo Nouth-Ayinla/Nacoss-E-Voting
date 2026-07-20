@@ -34,6 +34,12 @@ export const adminLoginSchema = z.object({
   password: z.string().min(8),
 });
 
+export const adminCreateSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(8),
+  role: z.enum(["admin", "superadmin"]).default("admin"),
+});
+
 export const voterVerifyActionSchema = z.object({
   matricNumber: matricNumberSchema,
   action: z.enum(["approve", "reject"]),
@@ -43,7 +49,7 @@ export const voterVerifyActionSchema = z.object({
 export const candidateSchema = z.object({
   name: z.string().trim().min(2).max(100),
   position: z.string().trim().min(2).max(50),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().optional(),
   manifesto: z.string().max(2000).optional(),
 });
 

@@ -15,31 +15,18 @@ async function main() {
 
   const existing = await prisma.admin.findUnique({ where: { email } });
   if (existing) {
-    console.log(`Admin ${email} already exists — skipping.`);
-    return;
+    console.log(`Admin ${email} already exists — updating role to superadmin.`);
+    await prisma.admin.update({
+      where: { email },
+      data: { role: "superadmin" },
+    });
+  } else {
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.admin.create({
+      data: { email, passwordHash, role: "superadmin" },
+    });
+    console.log(`Created admin account for ${email}.`);
   }
-
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  await prisma.admin.create({
-    data: { email, passwordHash },
-  });
-
-  // Ensure an election config row exists so /api/election-state has something to read
-  await prisma.electionConfig.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { id: 1, state: "upcoming" },
-  });
-
-  // Ensure the vote hash-chain has a genesis anchor row to link the first vote to
-  await prisma.voteChainState.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { id: 1, latestHash: "GENESIS" },
-  });
-
-  console.log(`Created admin account for ${email}.`);
 }
 
 main()

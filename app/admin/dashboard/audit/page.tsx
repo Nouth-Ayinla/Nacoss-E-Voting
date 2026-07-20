@@ -175,52 +175,6 @@ export default function AuditLogPage() {
             )}
           </div>
         </div>
-
-
-        <div className="p-stack-md bg-surface-container-high/50 border-l-4 border-primary rounded-r-lg space-y-3">
-          <div className="flex items-start gap-stack-md">
-            <span
-              className="material-symbols-outlined text-primary"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              verified_user
-            </span>
-            <div className="flex-1">
-              <h4 className="font-bold text-body-md text-on-surface">Vote Chain Integrity</h4>
-              <p className="text-body-sm text-on-surface-variant leading-relaxed">
-                Every cast vote is linked to a hash of the one before it. Recomputing the chain from scratch
-                confirms none has been altered, inserted, or deleted out of order.
-              </p>
-            </div>
-          </div>
-
-          <div className="pl-9 flex items-center gap-3">
-            <button
-              onClick={verifyChain}
-              disabled={isVerifying}
-              className="bg-primary text-white px-4 py-2 rounded-full font-semibold text-body-sm disabled:opacity-60"
-            >
-              {isVerifying ? "Verifying..." : "Verify Chain Now"}
-            </button>
-            {chainStatus && (
-              <span
-                className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase ${
-                  chainStatus.valid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                }`}
-              >
-                {chainStatus.valid ? `Valid — ${chainStatus.checkedCount} votes checked` : "Tampering detected"}
-              </span>
-            )}
-          </div>
-          {chainStatus && !chainStatus.valid && chainStatus.reason && (
-            <p className="pl-9 text-error text-body-sm">{chainStatus.reason}</p>
-          )}
-
-          <p className="pl-9 text-body-sm text-on-surface-variant leading-relaxed border-t border-outline-variant/50 pt-3">
-            Audit log entries and votes are insert-only at the database permission level — the application's
-            database role has no UPDATE or DELETE privilege on either table.
-          </p>
-        </div>
       </div>
     </>
   );

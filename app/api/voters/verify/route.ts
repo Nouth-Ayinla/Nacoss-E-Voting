@@ -31,29 +31,39 @@ export async function POST(req: NextRequest) {
     pinHash = await bcrypt.hash(pin, 12);
   }
 
-  const voter = await db.voter.update({
-    where: { matricNumber },
-    data: {
-      status: action === "approve" ? "verified" : "rejected",
-      rejectionReason: action === "reject" ? rejectionReason : null,
-      pinHash: action === "approve" ? pinHash : undefined,
-    },
-  });
+  try {
+    await db.$transaction(async (tx) => {
+      const voter = await tx.voter.update({
+        where: { matricNumber },
+        data: {
+          status: action === "approve" ? "verified" : "rejected",
+          rejectionReason: action === "reject" ? rejectionReason : null,
+          pinHash: action === "approve" ? pinHash : undefined,
+        },
+      });
 
-  // Insert-only audit trail — never updated or deleted at the DB permission level
-  await db.auditLog.create({
-    data: {
-      adminId: admin.adminId,
-      action: `voter_${action}`,
-      metadata: { matricNumber, rejectionReason },
-    },
-  });
+      // Insert-only audit trail — never updated or deleted at the DB permission level
+      await tx.auditLog.create({
+        data: {
+          adminId: admin.adminId,
+          action: `voter_${action}`,
+          metadata: { matricNumber, rejectionReason },
+        },
+      });
 
-  await sendVerificationResultEmail(
-    voter.email,
-    action === "approve" ? "verified" : "rejected",
-    action === "approve" ? pin : rejectionReason
-  );
+      await sendVerificationResultEmail(
+        voter.email,
+        action === "approve" ? "verified" : "rejected",
+        action === "approve" ? pin : rejectionReason
+      );
+    });
 
-  return NextResponse.json({ message: `Voter ${action}d successfully.` });
+    return NextResponse.json({ message: `Voter ${action}d successfully.` });
+  } catch (error: any) {
+    console.error("Voter verification transaction failed:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to verify voter and send email." },
+      { status: 500 }
+    );
+  }
 }
