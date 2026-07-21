@@ -29,7 +29,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rateCheck = checkRateLimit(`voter-register:${ip}`, 5, 60 * 1000);
+  const rateCheck = await checkRateLimit(`voter-register:${ip}`, 5, 60 * 1000);
   if (!rateCheck.success) {
     return NextResponse.json(
       { error: `Too many registration attempts. Please wait ${rateCheck.retryAfterSeconds} seconds.` },

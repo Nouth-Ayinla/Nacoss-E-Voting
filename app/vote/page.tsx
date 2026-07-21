@@ -124,9 +124,9 @@ export default function VotePage() {
               <input
                 className="w-full px-4 py-3 bg-white border border-outline rounded font-technical-code uppercase focus:border-primary transition-all"
                 id="matricNumber"
-                placeholder="e.g. CSC/20/1234"
+                placeholder="CSC/20/0001"
                 value={matricNumber}
-                onChange={(e) => setMatricNumber(e.target.value)}
+                onChange={(e) => setMatricNumber(e.target.value.toUpperCase())}
                 required
               />
             </div>

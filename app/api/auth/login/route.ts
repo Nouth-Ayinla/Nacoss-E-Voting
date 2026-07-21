@@ -7,7 +7,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rateCheck = checkRateLimit(`voter-login:${ip}`, 5, 60 * 1000);
+  const rateCheck = await checkRateLimit(`voter-login:${ip}`, 5, 60 * 1000);
   if (!rateCheck.success) {
     return NextResponse.json(
       { error: `Too many login attempts. Please try again in ${rateCheck.retryAfterSeconds} seconds.` },
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   // Per-matric rate limit: caps distributed attacks targeting one specific voter
   // across many IP addresses. 10 attempts per 15 minutes per matric number.
-  const matricRateCheck = checkRateLimit(`voter-login-matric:${parsed.data.matricNumber}`, 10, 15 * 60 * 1000);
+  const matricRateCheck = await checkRateLimit(`voter-login-matric:${parsed.data.matricNumber}`, 10, 15 * 60 * 1000);
   if (!matricRateCheck.success) {
     return NextResponse.json(
       { error: `Too many login attempts for this account. Please try again in ${matricRateCheck.retryAfterSeconds} seconds.` },

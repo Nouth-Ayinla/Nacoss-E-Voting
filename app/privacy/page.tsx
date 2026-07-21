@@ -83,7 +83,7 @@ export default function PrivacyPage() {
               <ul className="list-disc list-inside space-y-2 text-on-surface-variant pl-2">
                 <li><strong className="text-on-surface">Encryption at Rest & in Transit:</strong> All data transmitted over HTTPS is encrypted using TLS 1.3. Uploaded identity documents are stored in secure Cloudflare R2 storage with restricted access policies.</li>
                 <li><strong className="text-on-surface">Access Controls:</strong> Document inspection is strictly restricted to designated Electoral Committee officers via authenticated admin tokens.</li>
-                <li><strong className="text-on-surface">Data Retention Period:</strong> Identity documents and temporary verification logs are permanently deleted 30 days after the official ratification and publication of election results.</li>
+                <li><strong className="text-on-surface">Data Retention Period:</strong> Voter registration records, verification status, and academic credentials are securely retained for subsequent departmental elections.</li>
               </ul>
             </section>
 
@@ -94,8 +94,8 @@ export default function PrivacyPage() {
               </h2>
               <p className="text-on-surface-variant">
                 If you have questions regarding this Privacy Policy or suspect unauthorized access to your voting credentials, please contact the NACOSS Electoral Committee via email at{" "}
-                <a href="mailto:support@nacoss-evoting.org" className="text-primary font-medium hover:underline">
-                  eleco@nacoss-evoting.org
+                <a href="mailto:saintfocus34@gmail.com" className="text-primary font-medium hover:underline">
+                  saintfocus34@gmail.com
                 </a>.
               </p>
             </section>

@@ -4,7 +4,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   const ip = getClientIp(req);
-  const rateCheck = checkRateLimit(`voter-status:${ip}`, 10, 60 * 1000);
+  const rateCheck = await checkRateLimit(`voter-status:${ip}`, 10, 60 * 1000);
   if (!rateCheck.success) {
     return NextResponse.json(
       { error: `Rate limit exceeded. Please wait ${rateCheck.retryAfterSeconds} seconds.` },

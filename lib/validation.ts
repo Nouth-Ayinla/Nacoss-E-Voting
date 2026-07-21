@@ -3,7 +3,10 @@ import { z } from "zod";
 export const matricNumberSchema = z
   .string()
   .trim()
-  .regex(/^[A-Z0-9\/]{6,20}$/i, "Invalid matric number format");
+  .transform((val) => val.toUpperCase())
+  .pipe(
+    z.string().regex(/^[A-Z0-9\/]{6,20}$/, "Invalid matric number format (e.g. CSC/20/0001)")
+  );
 
 export const voterRegistrationSchema = z.object({
   matricNumber: matricNumberSchema,

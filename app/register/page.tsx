@@ -212,7 +212,7 @@ export default function RegisterPage() {
                   Matric Number
                 </label>
                 <input
-                  className="monospaced-input w-full h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-technical-code text-technical-code text-charcoal-slate placeholder:text-outline disabled:opacity-60"
+                  className="monospaced-input uppercase w-full h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-technical-code text-technical-code text-charcoal-slate placeholder:text-outline disabled:opacity-60"
                   id="matric_number"
                   name="matric_number"
                   placeholder="CSC/20/0001"
@@ -220,7 +220,7 @@ export default function RegisterPage() {
                   required
                   disabled={quota?.isFull}
                   value={matricNumber}
-                  onChange={(e) => setMatricNumber(e.target.value)}
+                  onChange={(e) => setMatricNumber(e.target.value.toUpperCase())}
                 />
               </div>
 

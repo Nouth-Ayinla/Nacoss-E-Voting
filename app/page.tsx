@@ -218,9 +218,9 @@ export default function LandingPage() {
                 <input
                   type="text"
                   placeholder="CSC/20/0001"
-                  className="monospaced-input flex-grow h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-technical-code text-technical-code text-charcoal-slate placeholder:text-outline"
+                  className="monospaced-input uppercase flex-grow h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-technical-code text-technical-code text-charcoal-slate placeholder:text-outline"
                   value={matricNumber}
-                  onChange={(e) => setMatricNumber(e.target.value)}
+                  onChange={(e) => setMatricNumber(e.target.value.toUpperCase())}
                   required
                 />
                 <button
