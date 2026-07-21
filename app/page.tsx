@@ -34,15 +34,23 @@ export default function LandingPage() {
   useEffect(() => {
     // Fetch election state
     fetch("/api/election-state")
-      .then((res) => res.json())
-      .then((data) => setElection(data))
-      .catch((err) => console.error("Error fetching election state:", err));
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setElection(data);
+      })
+      .catch(() => {
+        // Default fallback state when server/network is offline
+      });
 
     // Fetch candidates
     fetch("/api/candidates")
-      .then((res) => res.json())
-      .then((data) => setCandidates(data))
-      .catch((err) => console.error("Error fetching candidates:", err));
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setCandidates(data);
+      })
+      .catch(() => {
+        // Default fallback state when server/network is offline
+      });
   }, []);
 
   async function handleCheckStatus(e: React.FormEvent) {
@@ -93,10 +101,10 @@ export default function LandingPage() {
           <section className="text-center space-y-6 pt-6">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-outline-variant shadow-sm">
               <span className={`w-2.5 h-2.5 rounded-full ${electionState === "ongoing"
-                  ? "bg-emerald-500 animate-pulse"
-                  : electionState === "upcoming"
-                    ? "bg-amber-500"
-                    : "bg-slate-400"
+                ? "bg-emerald-500 animate-pulse"
+                : electionState === "upcoming"
+                  ? "bg-amber-500"
+                  : "bg-slate-400"
                 }`} />
               <span className="font-label-caps text-[11px] text-on-surface-variant uppercase tracking-wider">
                 {electionState === "ongoing"
@@ -209,7 +217,7 @@ export default function LandingPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="CS/2026/0001"
+                  placeholder="CSC/20/0001"
                   className="monospaced-input flex-grow h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-technical-code text-technical-code text-charcoal-slate placeholder:text-outline"
                   value={matricNumber}
                   onChange={(e) => setMatricNumber(e.target.value)}
@@ -233,12 +241,12 @@ export default function LandingPage() {
                 <div className="animate-slide-in overflow-hidden rounded-lg border border-outline-variant p-4 bg-surface-container-low space-y-2">
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${statusResult === "verified"
-                        ? "bg-emerald-500"
-                        : statusResult === "pending"
-                          ? "bg-amber-500"
-                          : statusResult === "rejected"
-                            ? "bg-red-500"
-                            : "bg-slate-400"
+                      ? "bg-emerald-500"
+                      : statusResult === "pending"
+                        ? "bg-amber-500"
+                        : statusResult === "rejected"
+                          ? "bg-red-500"
+                          : "bg-slate-400"
                       }`} />
                     <span className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">
                       {statusResult === "verified" && "Registration Verified"}
@@ -280,8 +288,8 @@ export default function LandingPage() {
                   <button
                     onClick={() => setSelectedPosition("all")}
                     className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedPosition === "all"
-                        ? "bg-primary text-white shadow-sm"
-                        : "bg-white border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
+                      ? "bg-primary text-white shadow-sm"
+                      : "bg-white border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
                       }`}
                   >
                     All Posts ({candidates.length})
@@ -291,8 +299,8 @@ export default function LandingPage() {
                       key={pos}
                       onClick={() => setSelectedPosition(pos)}
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedPosition === pos
-                          ? "bg-primary text-white shadow-sm"
-                          : "bg-white border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-white border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
                         }`}
                     >
                       {pos} ({candidatesByPosition[pos].length})

@@ -26,14 +26,19 @@ export default function RegisterPage() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
 
   const [quota, setQuota] = useState<QuotaInfo | null>(null);
 
   useEffect(() => {
     fetch("/api/voters/register")
-      .then((res) => res.json())
-      .then((data: QuotaInfo) => setQuota(data))
-      .catch((err) => console.error("Error fetching quota:", err));
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: QuotaInfo | null) => {
+        if (data) setQuota(data);
+      })
+      .catch(() => {
+        // Fallback gracefully without logging raw exceptions
+      });
   }, []);
 
   function handleStepOneSubmit(e: React.FormEvent) {
@@ -46,6 +51,7 @@ export default function RegisterPage() {
   async function handleStepTwoSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
+    setIsAlreadyRegistered(false);
 
     if (quota?.isFull) {
       setSubmitError("Daily registration limit reached (120/120). Resets at 00:00 AM.");
@@ -75,6 +81,9 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 409) {
+          setIsAlreadyRegistered(true);
+        }
         setSubmitError(
           typeof data.error === "string" ? data.error : "Registration failed. Check your details and try again."
         );
@@ -115,11 +124,10 @@ export default function RegisterPage() {
             {/* Daily Quota Counter Badge */}
             {quota && (
               <div
-                className={`self-start sm:self-auto shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wider flex items-center gap-1.5 border ${
-                  quota.isFull
+                className={`self-start sm:self-auto shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wider flex items-center gap-1.5 border ${quota.isFull
                     ? "bg-error-container text-on-error-container border-error/30"
                     : "bg-primary/10 text-primary border-primary/20"
-                }`}
+                  }`}
                 title="Daily registration limit resets every day at 00:00 AM"
               >
                 <span className="material-symbols-outlined text-[16px]">
@@ -207,7 +215,7 @@ export default function RegisterPage() {
                   className="monospaced-input w-full h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-technical-code text-technical-code text-charcoal-slate placeholder:text-outline disabled:opacity-60"
                   id="matric_number"
                   name="matric_number"
-                  placeholder="CS/2026/0001"
+                  placeholder="CSC/20/0001"
                   type="text"
                   required
                   disabled={quota?.isFull}
@@ -229,11 +237,10 @@ export default function RegisterPage() {
                       setIdFile(null);
                       setFileError(null);
                     }}
-                    className={`py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${
-                      documentType === "idcard"
+                    className={`py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${documentType === "idcard"
                         ? "bg-primary text-white shadow-sm"
                         : "text-on-surface-variant hover:text-charcoal-slate hover:bg-surface-container-high"
-                    }`}
+                      }`}
                   >
                     Student ID Card
                   </button>
@@ -245,11 +252,10 @@ export default function RegisterPage() {
                       setIdFile(null);
                       setFileError(null);
                     }}
-                    className={`py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${
-                      documentType === "courseform"
+                    className={`py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${documentType === "courseform"
                         ? "bg-primary text-white shadow-sm"
                         : "text-on-surface-variant hover:text-charcoal-slate hover:bg-surface-container-high"
-                    }`}
+                      }`}
                   >
                     Course Form
                   </button>
@@ -267,8 +273,31 @@ export default function RegisterPage() {
               />
 
               {submitError && (
-                <div className="bg-error-container text-on-error-container rounded px-4 py-3 text-body-sm">
-                  {submitError}
+                <div className={`rounded-lg p-4 text-body-sm flex flex-col gap-2.5 border ${isAlreadyRegistered
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200"
+                    : "bg-error-container text-on-error-container border-error/30"
+                  }`}>
+                  <div className="flex items-start gap-2.5">
+                    <span className={`material-symbols-outlined text-lg shrink-0 mt-0.5 ${isAlreadyRegistered ? "text-amber-600" : ""}`}>
+                      {isAlreadyRegistered ? "info" : "error"}
+                    </span>
+                    <div>
+                      <strong className="font-semibold block mb-0.5">
+                        {isAlreadyRegistered ? "Registration Already Submitted" : "Registration Issue"}
+                      </strong>
+                      {submitError}
+                    </div>
+                  </div>
+                  {isAlreadyRegistered && (
+                    <button
+                      type="button"
+                      onClick={() => router.push("/")}
+                      className="mt-1 self-start inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline bg-white dark:bg-surface-container-high px-3.5 py-1.5 rounded-full border border-outline-variant shadow-xs transition-colors"
+                    >
+                      Check Verification Status on Homepage
+                      <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                    </button>
+                  )}
                 </div>
               )}
 
