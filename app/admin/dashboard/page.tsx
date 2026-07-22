@@ -139,52 +139,77 @@ export default function VoterVerificationPage() {
   const pendingCount = counts.find((c) => c.status === "pending")?._count ?? 0;
   const verifiedCount = counts.find((c) => c.status === "verified")?._count ?? 0;
 
+  // Relative time helper
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    if (h < 24) return `${h}h ago`;
+    return `${d}d ago`;
+  }
+
+  const rejectedCount = counts.find((c) => c.status === "rejected")?._count ?? 0;
+
   return (
     <>
       <AdminHeader title="Voter Verification" />
-      <div className="px-gutter py-stack-md flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border-b border-outline-variant gap-4">
+
+      {/* ── Desktop subheader ─────────────────────────────────────────── */}
+      <div className="hidden md:flex px-gutter py-stack-md flex-row justify-between items-center bg-white border-b border-outline-variant gap-4">
         <div>
           <h1 className="font-headline-lg text-headline-lg text-on-surface">Verification Queue</h1>
-          <p className="text-on-surface-variant font-body-sm mt-1">
-            Review and approve pending student registrations.
-          </p>
+          <p className="text-on-surface-variant font-body-sm mt-1">Review and approve pending student registrations.</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setStatusFilter("pending")}
-            className={`p-3 px-5 rounded-full border transition-all flex items-center gap-3 cursor-pointer ${
-              statusFilter === "pending"
-                ? "bg-primary/5 border-primary text-primary font-bold"
-                : "bg-white border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
-            }`}
-          >
-            <span className="font-label-caps uppercase text-[11px]">Pending</span>
-            <span className="font-headline-md">{pendingCount}</span>
-          </button>
-          
-          <button
-            onClick={() => setStatusFilter("verified")}
-            className={`p-3 px-5 rounded-full border transition-all flex items-center gap-3 cursor-pointer ${
-              statusFilter === "verified"
-                ? "bg-primary/5 border-primary text-primary font-bold"
-                : "bg-white border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
-            }`}
-          >
-            <span className="font-label-caps uppercase text-[11px]">Verified</span>
-            <span className="font-headline-md">{verifiedCount}</span>
-          </button>
+        <div className="flex gap-3">
+          {([
+            { key: "pending",  label: "Pending",  count: pendingCount,  accent: "border-amber-400 text-amber-700 bg-amber-50" },
+            { key: "verified", label: "Verified", count: verifiedCount,  accent: "border-emerald-500 text-emerald-700 bg-emerald-50" },
+            { key: "rejected", label: "Rejected", count: rejectedCount,  accent: "border-rose-500 text-rose-700 bg-rose-50" },
+          ] as const).map(({ key, label, count, accent }) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={`p-3 px-5 rounded-full border-2 transition-all flex items-center gap-3 cursor-pointer font-semibold ${
+                statusFilter === key ? accent : "bg-white border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
+              }`}
+            >
+              <span className="text-[11px] uppercase tracking-widest">{label}</span>
+              <span className="text-lg font-bold">{count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-          <button
-            onClick={() => setStatusFilter("rejected")}
-            className={`p-3 px-5 rounded-full border transition-all flex items-center gap-3 cursor-pointer ${
-              statusFilter === "rejected"
-                ? "bg-error/5 border-error text-error font-bold"
-                : "bg-white border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
-            }`}
-          >
-            <span className="font-label-caps uppercase text-[11px]">Rejected</span>
-            <span className="font-headline-md">{counts.find((c) => c.status === "rejected")?._count ?? 0}</span>
-          </button>
+      {/* ── Mobile filter tabs ────────────────────────────────────────── */}
+      <div className="md:hidden sticky top-0 z-20 bg-white border-b border-outline-variant shadow-sm">
+        <div className="flex">
+          {([
+            { key: "pending",  label: "Pending",  count: pendingCount,  dot: "bg-amber-400" },
+            { key: "verified", label: "Verified", count: verifiedCount,  dot: "bg-emerald-500" },
+            { key: "rejected", label: "Rejected", count: rejectedCount,  dot: "bg-rose-500" },
+          ] as const).map(({ key, label, count, dot }) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-center transition-all relative ${
+                statusFilter === key
+                  ? "text-primary font-bold"
+                  : "text-on-surface-variant"
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${dot}`} />
+                <span className="text-[11px] uppercase tracking-wide font-semibold">{label}</span>
+              </div>
+              <span className="text-xl font-bold leading-none">{count}</span>
+              {statusFilter === key && (
+                <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -208,57 +233,95 @@ export default function VoterVerificationPage() {
             <p className="p-gutter text-on-surface-variant">No registrations found in this category.</p>
           ) : (
             <>
-              {/* Mobile card list */}
-              <div className="md:hidden divide-y divide-outline-variant border-t border-outline-variant">
-                {voters.map((voter) => (
-                  <div
-                    key={voter.matricNumber}
-                    className="flex items-center justify-between px-margin-mobile py-stack-md hover:bg-surface-container-low transition-colors"
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-headline-md text-[16px] text-on-surface font-semibold">
-                        {voter.name.toUpperCase()}
-                      </span>
-                      <span className="font-technical-code text-body-sm text-outline">{voter.matricNumber}</span>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className={`font-label-caps text-[10px] px-2 py-0.5 rounded ${
-                          voter.status === "verified"
-                            ? "bg-primary-container text-white"
-                            : voter.status === "rejected"
-                            ? "bg-error-container text-on-error-container"
-                            : "bg-secondary-fixed text-on-secondary-fixed-variant"
-                        }`}>
-                          {voter.status.toUpperCase()}
-                        </span>
-                        {voter.classListMatch?.status === "MATCH" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                            In Class List
-                          </span>
-                        )}
-                        {voter.classListMatch?.status === "MISMATCH" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                            Name Mismatch ({voter.classListMatch.similarityScore}%)
-                          </span>
-                        )}
-                        {voter.classListMatch?.status === "NOT_FOUND" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                            Not in Class List
-                          </span>
-                        )}
-                      </div>
-                    </div>
+              {/* ── Mobile premium card list ───────────────────────────── */}
+              <div className="md:hidden flex flex-col bg-[#f4f6f9] pt-2 pb-4">
+                {voters.map((voter) => {
+                  const matchStatus = voter.classListMatch?.status;
+                  const accentColor =
+                    voter.status === "verified" ? "bg-emerald-500"
+                    : voter.status === "rejected" ? "bg-rose-500"
+                    : matchStatus === "NOT_FOUND" ? "bg-rose-400"
+                    : matchStatus === "MISMATCH" ? "bg-amber-400"
+                    : "bg-amber-400";
+
+                  return (
                     <button
+                      key={voter.matricNumber}
                       onClick={() => {
                         setSelected(voter);
                         setShowRejectInput(false);
                         setActionError(null);
                       }}
-                      className="bg-primary text-on-primary font-label-caps text-label-caps px-4 py-2 rounded-full hover:bg-primary-container transition-all active:scale-95 shadow-sm"
+                      className="w-full text-left bg-white mx-4 mb-2.5 rounded-2xl shadow-sm border border-outline-variant/40 overflow-hidden active:scale-[0.985] transition-all duration-150"
+                      style={{width: "calc(100% - 32px)"}}
                     >
-                      REVIEW
+                      <div className="flex">
+                        {/* Coloured left accent */}
+                        <div className={`w-1 shrink-0 ${accentColor}`} />
+
+                        <div className="flex items-center gap-3 px-4 py-3.5 flex-1 min-w-0">
+                          {/* Avatar */}
+                          <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-inner ${
+                            voter.status === "verified" ? "bg-emerald-500"
+                            : voter.status === "rejected" ? "bg-rose-500"
+                            : "bg-primary"
+                          }`}>
+                            {initials(voter.name)}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-[15px] text-on-surface truncate leading-tight">{voter.name}</p>
+                            <p className="font-mono text-[11px] text-on-surface-variant mt-0.5">{voter.matricNumber}</p>
+
+                            {/* Badges row */}
+                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                              {/* Status badge */}
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                voter.status === "verified" ? "bg-emerald-100 text-emerald-800"
+                                : voter.status === "rejected" ? "bg-rose-100 text-rose-800"
+                                : "bg-amber-100 text-amber-800"
+                              }`}>
+                                <span className="material-symbols-outlined" style={{fontSize:"10px"}}>
+                                  {voter.status === "verified" ? "check_circle" : voter.status === "rejected" ? "cancel" : "schedule"}
+                                </span>
+                                {voter.status.toUpperCase()}
+                              </span>
+
+                              {/* Class list badge */}
+                              {matchStatus === "MATCH" && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <span className="material-symbols-outlined" style={{fontSize:"10px"}}>school</span>
+                                  {voter.classListMatch?.level}L Roster
+                                </span>
+                              )}
+                              {matchStatus === "MISMATCH" && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                  <span className="material-symbols-outlined" style={{fontSize:"10px"}}>warning</span>
+                                  {voter.classListMatch?.similarityScore}% match
+                                </span>
+                              )}
+                              {matchStatus === "NOT_FOUND" && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                                  <span className="material-symbols-outlined" style={{fontSize:"10px"}}>person_off</span>
+                                  Not in Roster
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Time + chevron */}
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            <span className="text-[10px] text-on-surface-variant">{timeAgo(voter.createdAt)}</span>
+                            <span className="material-symbols-outlined text-on-surface-variant" style={{fontSize:"20px"}}>chevron_right</span>
+                          </div>
+                        </div>
+                      </div>
                     </button>
-                  </div>
-                ))}
+                  );
+                })}
+                {/* Bottom padding for comfortable scrolling */}
+                <div className="h-6" />
               </div>
 
               {/* Desktop table */}
@@ -350,155 +413,239 @@ export default function VoterVerificationPage() {
           )}
         </section>
 
-        {/* Review panel */}
+        {/* ── Review panel ─────────────────────────────────────────────── */}
         <section
-          className={`bg-white flex flex-col shadow-sm overflow-hidden md:relative md:w-96 ${
-            selected ? "fixed inset-0 z-50 md:static md:inset-auto" : "hidden md:flex"
+          className={`flex flex-col overflow-hidden md:relative md:w-96 md:bg-white md:shadow-sm ${
+            selected ? "fixed inset-0 z-50 md:static md:inset-auto bg-surface" : "hidden md:flex"
           }`}
         >
           {selected ? (
             <>
-              <div className="p-6 overflow-y-auto flex-1">
-                <div className="flex items-center gap-3 mb-6 border-b border-outline-variant pb-2">
+              {/* ── Mobile clean header ─── */}
+              <div className="md:hidden bg-primary shrink-0">
+                <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                  {/* Back button */}
                   <button
                     onClick={() => setSelected(null)}
-                    className="md:hidden p-1 hover:bg-surface-container-low rounded-full transition-colors"
+                    className="p-2 -ml-1 hover:bg-white/10 rounded-full transition-colors active:scale-95"
                   >
-                    <span className="material-symbols-outlined">arrow_back</span>
+                    <span className="material-symbols-outlined text-white" style={{fontSize:"22px"}}>arrow_back</span>
                   </button>
-                  <h2 className="font-headline-md text-headline-md text-on-surface">Voter Review</h2>
-                </div>
-                <div className="space-y-6">
-                  <div>
-                    <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2 uppercase">
-                      Full Legal Name
-                    </label>
-                    <p className="font-body-md font-bold text-on-surface bg-surface-container-low p-3 rounded-lg border border-outline-variant">
-                      {selected.name}
-                    </p>
+
+                  {/* Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                    {initials(selected.name)}
                   </div>
-                  <div>
-                    <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2 uppercase">
-                      Matric Number
-                    </label>
-                    <p className="font-technical-code font-bold text-on-surface bg-surface-container-low p-3 rounded-lg border border-outline-variant">
-                      {selected.matricNumber}
-                    </p>
+
+                  {/* Identity */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-white text-[15px] truncate leading-tight">{selected.name}</p>
+                    <p className="font-mono text-[11px] text-white/70">{selected.matricNumber}</p>
                   </div>
-                  <div>
-                    <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2 uppercase">
-                      Email
-                    </label>
-                    <p className="font-body-md text-on-surface bg-surface-container-low p-3 rounded-lg border border-outline-variant">
-                      {selected.email}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2 uppercase">
-                      Class List Roster Match
-                    </label>
-                    <div className="bg-surface-container-low p-3 rounded-lg border border-outline-variant space-y-1">
-                      {selected.classListMatch?.status === "MATCH" && (
-                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-semibold text-xs">
-                          <span className="material-symbols-outlined text-sm">check_circle</span>
-                          <span>In Class List {selected.classListMatch.level ? `(${selected.classListMatch.level}L)` : "(100%)"}</span>
-                        </div>
-                      )}
-                      {selected.classListMatch?.status === "MISMATCH" && (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-semibold text-xs">
-                            <span className="material-symbols-outlined text-sm">warning</span>
-                            <span>Name Mismatch ({selected.classListMatch.similarityScore}% match)</span>
-                          </div>
-                          <p className="text-xs text-on-surface-variant">
-                            Master Roster Name: <strong className="text-on-surface">{selected.classListMatch.masterName}</strong>
-                          </p>
-                        </div>
-                      )}
-                      {selected.classListMatch?.status === "NOT_FOUND" && (
-                        <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-semibold text-xs">
-                          <span className="material-symbols-outlined text-sm">cancel</span>
-                          <span>Not in Class List</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2 uppercase">
-                      {selected.documentType === "courseform" ? "Course Form Document" : "Student ID Card"}
-                    </label>
-                    <div className="aspect-[1.6/1] border-2 border-dashed border-outline rounded-lg overflow-hidden bg-surface-container-low">
-                      {selected.idCardUrl.toLowerCase().endsWith(".pdf") ? (
-                        <div className="flex flex-col items-center justify-center text-center p-4 w-full h-full space-y-3">
-                          <span className="material-symbols-outlined text-[48px] text-error">picture_as_pdf</span>
-                          <span className="font-body-sm text-on-surface font-medium truncate max-w-full px-2">
-                            PDF Document
-                          </span>
-                          <a
-                            href={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-primary text-white px-4 py-2 rounded-full font-semibold hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5"
-                          >
-                            <span className="material-symbols-outlined text-sm">open_in_new</span>
-                            Open PDF in New Tab
-                          </a>
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => setIsPreviewOpen(true)}
-                          className="w-full h-full relative cursor-zoom-in group overflow-hidden"
-                          title="Click to zoom / view full document"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
-                            alt="Uploaded verification document"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100">
-                            <span className="material-symbols-outlined text-white text-3xl drop-shadow-md">zoom_in</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+
+                  {/* Status chip */}
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${
+                    selected.status === "verified" ? "bg-emerald-400/30 text-emerald-100"
+                    : selected.status === "rejected" ? "bg-rose-400/30 text-rose-100"
+                    : "bg-white/20 text-white"
+                  }`}>
+                    {selected.status.toUpperCase()}
+                  </span>
                 </div>
               </div>
 
-              {selected.status === "pending" && (
-                <div className="p-6 bg-white border-t border-outline-variant flex flex-col gap-3 shrink-0">
-                  {actionError && <p className="text-error text-body-sm">{actionError}</p>}
-                  {showRejectInput && (
-                    <textarea
-                      className="w-full border border-outline-variant rounded-lg p-3 text-body-sm"
-                      placeholder="Reason for rejection..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      rows={2}
-                    />
-                  )}
-                  <button
-                    onClick={() => handleAction("approve")}
-                    disabled={isActing}
-                    className="w-full bg-primary text-white py-3 rounded-full font-bold flex items-center justify-center gap-2 hover:brightness-110 transition-all disabled:opacity-60"
-                  >
-                    <span className="material-symbols-outlined">check_circle</span>
-                    Approve Registration
-                  </button>
-                  <button
-                    onClick={() => handleAction("reject")}
-                    disabled={isActing}
-                    className="w-full bg-white text-error border border-error py-3 rounded-full font-bold flex items-center justify-center gap-2 hover:bg-error/5 transition-all disabled:opacity-60"
-                  >
-                    <span className="material-symbols-outlined">cancel</span>
-                    {showRejectInput ? "Confirm Rejection" : "Reject & Request Re-upload"}
-                  </button>
+              {/* ── Desktop header (compact) ─── */}
+              <div className="hidden md:flex items-center gap-3 px-6 py-4 border-b border-outline-variant bg-white shrink-0">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  selected.status === "verified" ? "bg-emerald-500" : selected.status === "rejected" ? "bg-rose-500" : "bg-primary"
+                }`}>
+                  {initials(selected.name)}
                 </div>
-              )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-on-surface truncate text-sm">{selected.name}</p>
+                  <p className="text-on-surface-variant font-mono text-xs">{selected.matricNumber}</p>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  selected.status === "verified" ? "bg-emerald-100 text-emerald-800"
+                  : selected.status === "rejected" ? "bg-rose-100 text-rose-800"
+                  : "bg-amber-100 text-amber-800"
+                }`}>{selected.status.toUpperCase()}</span>
+              </div>
+
+              {/* ── Scrollable detail body ─── */}
+              <div className="flex-1 overflow-y-auto">
+                {/* Class list status banner */}
+                {selected.classListMatch && (
+                  <div className={`mx-4 mt-4 rounded-xl p-3.5 flex items-center gap-3 ${
+                    selected.classListMatch.status === "MATCH" ? "bg-emerald-50 border border-emerald-200"
+                    : selected.classListMatch.status === "MISMATCH" ? "bg-amber-50 border border-amber-200"
+                    : "bg-rose-50 border border-rose-200"
+                  }`}>
+                    <span className={`material-symbols-outlined ${
+                      selected.classListMatch.status === "MATCH" ? "text-emerald-600"
+                      : selected.classListMatch.status === "MISMATCH" ? "text-amber-600"
+                      : "text-rose-600"
+                    }`} style={{fontSize:"22px"}}>
+                      {selected.classListMatch.status === "MATCH" ? "school" : selected.classListMatch.status === "MISMATCH" ? "warning" : "person_off"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold ${
+                        selected.classListMatch.status === "MATCH" ? "text-emerald-800"
+                        : selected.classListMatch.status === "MISMATCH" ? "text-amber-800"
+                        : "text-rose-800"
+                      }`}>
+                        {selected.classListMatch.status === "MATCH"
+                          ? `In Class Roster — ${selected.classListMatch.level}L`
+                          : selected.classListMatch.status === "MISMATCH"
+                          ? `Name Mismatch — ${selected.classListMatch.similarityScore}% similarity`
+                          : "Not Found in Class Roster"}
+                      </p>
+                      {selected.classListMatch.status === "MISMATCH" && selected.classListMatch.masterName && (
+                        <p className="text-[11px] text-amber-700 mt-0.5 truncate">
+                          Roster: <strong>{selected.classListMatch.masterName}</strong>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Info cards */}
+                <div className="px-4 pt-4 pb-2 space-y-3">
+                  {/* Name */}
+                  <div className="bg-white rounded-xl border border-outline-variant/70 px-4 py-3 shadow-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Full Legal Name</p>
+                    <p className="font-semibold text-on-surface text-[15px]">{selected.name}</p>
+                  </div>
+
+                  {/* Matric + Email in a 2-col row on mobile */}
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="bg-white rounded-xl border border-outline-variant/70 px-4 py-3 shadow-sm">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Matric Number</p>
+                      <p className="font-mono font-bold text-on-surface text-sm">{selected.matricNumber}</p>
+                    </div>
+                    <div className="bg-white rounded-xl border border-outline-variant/70 px-4 py-3 shadow-sm">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Email Address</p>
+                      <p className="text-on-surface text-sm truncate">{selected.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Submitted time */}
+                  <div className="bg-white rounded-xl border border-outline-variant/70 px-4 py-3 shadow-sm flex items-center gap-3">
+                    <span className="material-symbols-outlined text-on-surface-variant" style={{fontSize:"18px"}}>schedule</span>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Submitted</p>
+                      <p className="text-on-surface text-sm">{new Date(selected.createdAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Document preview */}
+                <div className="px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                    {selected.documentType === "courseform" ? "Course Form Document" : "Student ID Card"}
+                  </p>
+                  <div className="rounded-2xl overflow-hidden border border-outline-variant shadow-sm">
+                    {selected.idCardUrl.toLowerCase().endsWith(".pdf") ? (
+                      <div className="flex flex-col items-center justify-center text-center p-6 bg-rose-50 space-y-3 min-h-[120px]">
+                        <span className="material-symbols-outlined text-[44px] text-rose-500">picture_as_pdf</span>
+                        <a
+                          href={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-rose-600 text-white px-5 py-2.5 rounded-full font-bold hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-2 shadow-md"
+                        >
+                          <span className="material-symbols-outlined text-sm">open_in_new</span>
+                          Open PDF Document
+                        </a>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => setIsPreviewOpen(true)}
+                        className="relative cursor-zoom-in group overflow-hidden aspect-[4/3]"
+                        title="Tap to zoom"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
+                          alt="Uploaded verification document"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100">
+                          <div className="bg-white/90 backdrop-blur rounded-full p-3 shadow-lg">
+                            <span className="material-symbols-outlined text-on-surface" style={{fontSize:"24px"}}>zoom_in</span>
+                          </div>
+                        </div>
+                        <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur rounded-full px-2.5 py-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-white" style={{fontSize:"12px"}}>zoom_in</span>
+                          <span className="text-white text-[10px] font-semibold">Tap to zoom</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Action buttons — directly below the document ── */}
+                {selected.status === "pending" && (
+                  <div className="px-4 pb-4 space-y-2.5">
+                    {actionError && (
+                      <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                        <span className="material-symbols-outlined text-rose-600" style={{fontSize:"16px"}}>error</span>
+                        <p className="text-rose-700 text-xs font-medium">{actionError}</p>
+                      </div>
+                    )}
+                    {showRejectInput && (
+                      <textarea
+                        className="w-full border-2 border-outline-variant focus:border-error rounded-xl p-3 text-sm bg-white outline-none transition-colors"
+                        placeholder="Describe the reason for rejection..."
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        rows={2}
+                      />
+                    )}
+                    <button
+                      onClick={() => handleAction("approve")}
+                      disabled={isActing}
+                      className="w-full bg-emerald-600 text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 shadow-md shadow-emerald-200 text-[15px]"
+                    >
+                      {isActing ? (
+                        <span className="material-symbols-outlined animate-spin" style={{fontSize:"20px"}}>progress_activity</span>
+                      ) : (
+                        <span className="material-symbols-outlined" style={{fontSize:"20px"}}>check_circle</span>
+                      )}
+                      Approve Registration
+                    </button>
+                    <button
+                      onClick={() => handleAction("reject")}
+                      disabled={isActing}
+                      className="w-full bg-white text-rose-600 border-2 border-rose-200 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-rose-50 active:scale-[0.98] transition-all disabled:opacity-50 text-[15px]"
+                    >
+                      <span className="material-symbols-outlined" style={{fontSize:"20px"}}>cancel</span>
+                      {showRejectInput ? "Confirm Rejection" : "Reject & Request Re-upload"}
+                    </button>
+                  </div>
+                )}
+
+                {/* Rejection reason (if any) */}
+                {selected.status === "rejected" && selected.rejectionReason && (
+                  <div className="mx-4 mb-4 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1">Rejection Reason</p>
+                    <p className="text-rose-800 text-sm">{selected.rejectionReason}</p>
+                  </div>
+                )}
+
+                <div className="h-6" />
+              </div>
             </>
           ) : (
-            <p className="p-6 text-on-surface-variant">Select a voter to review.</p>
+            <div className="hidden md:flex flex-col items-center justify-center flex-1 text-center px-8 gap-4">
+              <div className="w-20 h-20 rounded-full bg-surface-container-low flex items-center justify-center">
+                <span className="material-symbols-outlined text-on-surface-variant" style={{fontSize:"36px"}}>person_search</span>
+              </div>
+              <div>
+                <p className="font-semibold text-on-surface">No voter selected</p>
+                <p className="text-on-surface-variant text-sm mt-1">Click on a voter from the list to review their registration.</p>
+              </div>
+            </div>
           )}
         </section>
       </div>
