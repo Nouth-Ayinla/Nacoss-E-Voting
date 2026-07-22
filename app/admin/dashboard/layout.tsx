@@ -11,7 +11,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   return (
     <div className="min-h-screen bg-surface">
       <AdminSidebar />
-      <div className="md:ml-64 min-h-screen flex flex-col">{children}</div>
+      <div className="md:ml-64 h-screen flex flex-col overflow-hidden">{children}</div>
     </div>
   );
 }

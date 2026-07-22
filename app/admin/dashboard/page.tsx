@@ -352,7 +352,7 @@ export default function VoterVerificationPage() {
 
         {/* Review panel */}
         <section
-          className={`bg-white flex flex-col shadow-sm md:relative md:w-96 ${
+          className={`bg-white flex flex-col shadow-sm overflow-hidden md:relative md:w-96 ${
             selected ? "fixed inset-0 z-50 md:static md:inset-auto" : "hidden md:flex"
           }`}
         >
