@@ -57,9 +57,11 @@ storage), and Resend.
   this is a real check, not a static claim.
 - **Database-level immutability**: `prisma/sql/enable-immutability.sql`
   enables Row-Level Security with `FORCE` (so it applies even to the table
-  owner) on `votes`, `vote_receipts`, and `audit_logs`, and revokes
-  `UPDATE`/`DELETE` outright. Read the caveat at the top of that file —
-  this only holds if your DB connection role isn't a Postgres superuser.
+  owner) on the admin, election-state, candidate, vote, receipt, audit-log,
+  and chain-anchor tables. Access is claim-based: the app sets a per-transaction
+  request role before each protected query. Read the caveat at the top of that
+  file — this only holds if your DB connection role isn't a Postgres
+  superuser.
 - **Admin 2FA**: TOTP (Google Authenticator—compatible), set up via a
   QR-code flow at `/admin/dashboard/settings`. The secret is only persisted
   after the admin proves they scanned it. Login becomes two-step once

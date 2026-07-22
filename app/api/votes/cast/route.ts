@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { verifyVoterSession, destroyVoterSession } from "@/lib/session";
 import { voteCastSchema } from "@/lib/validation";
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const { votes } = parsed.data;
 
   try {
-    const receiptHash = await db.$transaction(async (tx) => {
+    const receiptHash = await withDbRequestContext({ role: "voter", matricNumber }, async (tx) => {
       // 1. Verify election state is ongoing
       const config = await tx.electionConfig.findUnique({ where: { id: 1 } });
       if (config?.state !== "ongoing") {
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       if (!electionSalt) throw new Error("ELECTION_SALT environment variable is not set.");
       const receipt = crypto
         .createHash("sha256")
-        .update(`${matricNumber}:${electionSalt}:${Date.now()}`)
+        .update(`${matricNumber}:${electionSalt}:${crypto.randomBytes(16).toString("hex")}`)
         .digest("hex");
 
       await tx.voteReceipt.create({ data: { receiptHash: receipt } });

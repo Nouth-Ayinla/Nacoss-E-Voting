@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 import { getSignedIdCardUrl } from "@/lib/storage";
 
@@ -13,7 +13,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing matricNumber parameter" }, { status: 400 });
   }
 
-  const voter = await db.voter.findUnique({ where: { matricNumber } });
+  const voter = await withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) =>
+    tx.voter.findUnique({ where: { matricNumber } })
+  );
   if (!voter) return NextResponse.json({ error: "Voter not found" }, { status: 404 });
 
   const signedUrl = await getSignedIdCardUrl(voter.idCardUrl);

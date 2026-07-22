@@ -36,7 +36,7 @@ export default function AdminHeader({ title }: { title: string }) {
               <span className="material-symbols-outlined text-on-surface-variant">menu</span>
             </button>
             <span className="font-headline-md text-primary tracking-tight font-bold md:hidden text-[16px]">
-              NACOSS E-Voting Portal
+              NACOSS FUTA Chapter E-Voting Portal
             </span>
             <span className="h-4 w-px bg-outline-variant hidden md:block" />
             <span className="text-on-surface-variant font-body-md font-semibold hidden md:inline-block">{title}</span>
@@ -69,7 +69,7 @@ export default function AdminHeader({ title }: { title: string }) {
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.png" alt="NACOSS Logo" className="w-full h-full object-contain" />
+                  <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <h2 className="font-headline-md text-[16px] text-primary font-bold">Admin Portal</h2>

@@ -122,3 +122,19 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+model ClassRoster {
+  id           String   @id @default(uuid())
+  matricNumber String   @unique @map("matric_number")
+  name         String
+  level        Int      // 100, 200, 300, 400, 500
+  department   String   @default("Computer Science")
+  status       String   @default("active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([level])
+  @@index([matricNumber])
+  @@map("class_roster")
+}
+

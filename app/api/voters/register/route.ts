@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { voterRegistrationSchema } from "@/lib/validation";
 import { uploadIdCard } from "@/lib/storage";
 import { sendRegistrationReceivedEmail } from "@/lib/email";
@@ -10,20 +10,22 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const DAILY_REGISTRATION_LIMIT = 120;
 
 export async function GET() {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  return withDbRequestContext({ role: "voter-register" }, async (tx) => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
-  const todayCount = await db.voter.count({
-    where: {
-      createdAt: { gte: startOfDay },
-    },
-  });
+    const todayCount = await tx.voter.count({
+      where: {
+        createdAt: { gte: startOfDay },
+      },
+    });
 
-  return NextResponse.json({
-    dailyCount: todayCount,
-    dailyLimit: DAILY_REGISTRATION_LIMIT,
-    remaining: Math.max(0, DAILY_REGISTRATION_LIMIT - todayCount),
-    isFull: todayCount >= DAILY_REGISTRATION_LIMIT,
+    return NextResponse.json({
+      dailyCount: todayCount,
+      dailyLimit: DAILY_REGISTRATION_LIMIT,
+      remaining: Math.max(0, DAILY_REGISTRATION_LIMIT - todayCount),
+      isFull: todayCount >= DAILY_REGISTRATION_LIMIT,
+    });
   });
 }
 
@@ -41,19 +43,6 @@ export async function POST(req: NextRequest) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const todayCount = await db.voter.count({
-    where: {
-      createdAt: { gte: startOfDay },
-    },
-  });
-
-  if (todayCount >= DAILY_REGISTRATION_LIMIT) {
-    return NextResponse.json(
-      { error: `Daily registration limit reached (120/120). Registration resets tomorrow at 00:00 AM.` },
-      { status: 429 }
-    );
-  }
-
   const formData = await req.formData();
   const parsed = voterRegistrationSchema.safeParse({
     matricNumber: formData.get("matricNumber"),
@@ -67,6 +56,18 @@ export async function POST(req: NextRequest) {
   }
 
   const { matricNumber, name, email, documentType } = parsed.data;
+
+  const todayCount = await withDbRequestContext(
+    { role: "voter-register", matricNumber, email },
+    async (tx) => tx.voter.count({ where: { createdAt: { gte: startOfDay } } })
+  );
+
+  if (todayCount >= DAILY_REGISTRATION_LIMIT) {
+    return NextResponse.json(
+      { error: `Daily registration limit reached (120/120). Registration resets tomorrow at 00:00 AM.` },
+      { status: 429 }
+    );
+  }
 
   const file = formData.get("idCard") as File | null;
   if (!file) {
@@ -82,26 +83,69 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "File must be under 5MB" }, { status: 400 });
   }
 
-  const existing = await db.voter.findFirst({
-    where: { OR: [{ matricNumber }, { email }] },
-  });
-  if (existing) {
+  // Check if a voter with this matric number already exists
+  const existingByMatric = await withDbRequestContext({ role: "voter-register", matricNumber }, async (tx) =>
+    tx.voter.findUnique({ where: { matricNumber } })
+  );
+
+  if (existingByMatric && existingByMatric.hasVoted) {
     return NextResponse.json(
-      { error: "A registration with this matric number or email already exists." },
+      { error: "This account has already cast a ballot and cannot register again." },
+      { status: 403 }
+    );
+  }
+
+  if (existingByMatric && existingByMatric.status !== "rejected") {
+    return NextResponse.json(
+      { error: "A registration with this matric number already exists." },
       { status: 409 }
     );
+  }
+
+  // Check if a voter with this email already exists
+  const existingByEmail = await withDbRequestContext({ role: "voter-register", email }, async (tx) =>
+    tx.voter.findUnique({ where: { email } })
+  );
+
+  if (existingByEmail) {
+    if (existingByEmail.matricNumber !== matricNumber) {
+      return NextResponse.json(
+        { error: "A registration with this email already exists." },
+        { status: 409 }
+      );
+    }
   }
 
   const idCardUrl = await uploadIdCard(file, matricNumber);
 
   try {
-    const voter = await db.$transaction(async (tx) => {
-      const createdVoter = await tx.voter.create({
-        data: { matricNumber, name, email, idCardUrl, documentType, status: "pending" },
-      });
+    const voter = await withDbRequestContext({ role: "voter-register", matricNumber, email }, async (tx) => {
+      let resultVoter;
 
-      await sendRegistrationReceivedEmail(createdVoter.email, createdVoter.name);
-      return createdVoter;
+      if (existingByMatric) {
+        // Allow rejected voters to update/re-submit their registration details
+        resultVoter = await tx.voter.update({
+          where: { matricNumber },
+          data: {
+            name,
+            email,
+            idCardUrl,
+            documentType,
+            status: "pending",
+            rejectionReason: null,
+            pinHash: null,
+            hasVoted: false,
+            createdAt: new Date(),
+          },
+        });
+      } else {
+        resultVoter = await tx.voter.create({
+          data: { matricNumber, name, email, idCardUrl, documentType, status: "pending" },
+        });
+      }
+
+      await sendRegistrationReceivedEmail(resultVoter.email, resultVoter.name);
+      return resultVoter;
     });
 
     return NextResponse.json({

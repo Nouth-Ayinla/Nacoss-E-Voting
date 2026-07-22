@@ -13,6 +13,12 @@ type Voter = {
   rejectionReason: string | null;
   hasVoted: boolean;
   createdAt: string;
+  classListMatch?: {
+    status: "MATCH" | "MISMATCH" | "NOT_FOUND";
+    similarityScore: number;
+    masterName: string | null;
+    level: number | null;
+  };
 };
 
 function initials(name: string) {
@@ -35,25 +41,40 @@ export default function VoterVerificationPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [statusFilter, setStatusFilter] = useState<"pending" | "verified" | "rejected">("pending");
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    setIsPreviewOpen(false);
+  }, [selected]);
 
   const loadVoters = useCallback(async () => {
     setIsLoading(true);
     setApiError(null);
     try {
       const res = await fetch(`/api/voters?status=${statusFilter}`);
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) {
         setApiError("Database or network connection failed. Check database logs.");
         setIsLoading(false);
         return;
       }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        setApiError("Invalid server response.");
+        setIsLoading(false);
+        return;
+      }
       const data = await res.json();
-      setVoters(data.voters);
-      setCounts(data.counts);
+      setVoters(data.voters || []);
+      setCounts(data.counts || []);
       setSelected((prev) => {
-        if (prev && data.voters.some((v: Voter) => v.matricNumber === prev.matricNumber)) {
+        if (prev && data.voters?.some((v: Voter) => v.matricNumber === prev.matricNumber)) {
           return data.voters.find((v: Voter) => v.matricNumber === prev.matricNumber) || null;
         }
-        return data.voters[0] ?? null;
+        return data.voters?.[0] ?? null;
       });
     } catch (err) {
       setApiError("Unable to reach the server. Please verify your internet connection.");
@@ -77,28 +98,42 @@ export default function VoterVerificationPage() {
     setIsActing(true);
     setActionError(null);
 
-    const res = await fetch("/api/voters/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        matricNumber: selected.matricNumber,
-        action,
-        rejectionReason: action === "reject" ? rejectionReason.trim() : undefined,
-      }),
-    });
+    try {
+      const res = await fetch("/api/voters/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matricNumber: selected.matricNumber,
+          action,
+          rejectionReason: action === "reject" ? rejectionReason.trim() : undefined,
+        }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      setActionError(data.error ?? "Action failed.");
+      let data: any = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      }
+
+      if (!res.ok) {
+        if (res.status === 500) {
+          setActionError("A system or database error occurred. Please try again.");
+        } else {
+          setActionError(data.error ?? "The action could not be completed.");
+        }
+        setIsActing(false);
+        return;
+      }
+
+      setRejectionReason("");
+      setShowRejectInput(false);
+      setSelected(null);
+      await loadVoters();
+    } catch (err: any) {
+      setActionError(err.message || "Failed to process request.");
+    } finally {
       setIsActing(false);
-      return;
     }
-
-    setRejectionReason("");
-    setShowRejectInput(false);
-    setSelected(null);
-    await loadVoters();
-    setIsActing(false);
   }
 
   const pendingCount = counts.find((c) => c.status === "pending")?._count ?? 0;
@@ -185,15 +220,32 @@ export default function VoterVerificationPage() {
                         {voter.name.toUpperCase()}
                       </span>
                       <span className="font-technical-code text-body-sm text-outline">{voter.matricNumber}</span>
-                      <span className={`font-label-caps text-[10px] px-2 py-0.5 rounded w-fit mt-1 ${
-                        voter.status === "verified"
-                          ? "bg-primary-container text-white"
-                          : voter.status === "rejected"
-                          ? "bg-error-container text-on-error-container"
-                          : "bg-secondary-fixed text-on-secondary-fixed-variant"
-                      }`}>
-                        {voter.status.toUpperCase()}
-                      </span>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span className={`font-label-caps text-[10px] px-2 py-0.5 rounded ${
+                          voter.status === "verified"
+                            ? "bg-primary-container text-white"
+                            : voter.status === "rejected"
+                            ? "bg-error-container text-on-error-container"
+                            : "bg-secondary-fixed text-on-secondary-fixed-variant"
+                        }`}>
+                          {voter.status.toUpperCase()}
+                        </span>
+                        {voter.classListMatch?.status === "MATCH" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            In Class List
+                          </span>
+                        )}
+                        {voter.classListMatch?.status === "MISMATCH" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            Name Mismatch ({voter.classListMatch.similarityScore}%)
+                          </span>
+                        )}
+                        {voter.classListMatch?.status === "NOT_FOUND" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                            Not in Class List
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => {
@@ -220,10 +272,13 @@ export default function VoterVerificationPage() {
                     Matric Number
                   </th>
                   <th className="px-6 py-4 font-label-caps text-on-surface-variant uppercase tracking-wider">
+                    Class List Status
+                  </th>
+                  <th className="px-6 py-4 font-label-caps text-on-surface-variant uppercase tracking-wider">
                     Submitted
                   </th>
                   <th className="px-6 py-4 font-label-caps text-on-surface-variant uppercase tracking-wider">
-                    Status
+                    Verification
                   </th>
                 </tr>
               </thead>
@@ -252,6 +307,26 @@ export default function VoterVerificationPage() {
                     </td>
                     <td className="px-6 py-4 font-technical-code text-on-surface-variant">
                       {voter.matricNumber}
+                    </td>
+                    <td className="px-6 py-4">
+                      {voter.classListMatch?.status === "MATCH" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                          <span className="material-symbols-outlined text-xs">check_circle</span>
+                          In Class List {voter.classListMatch.level ? `(${voter.classListMatch.level}L)` : ""}
+                        </span>
+                      )}
+                      {voter.classListMatch?.status === "MISMATCH" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" title={`Master Name: ${voter.classListMatch.masterName}`}>
+                          <span className="material-symbols-outlined text-xs">warning</span>
+                          Name Mismatch ({voter.classListMatch.similarityScore}%)
+                        </span>
+                      )}
+                      {voter.classListMatch?.status === "NOT_FOUND" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                          <span className="material-symbols-outlined text-xs">cancel</span>
+                          Not in Class List
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 font-body-sm text-on-surface-variant">
                       {new Date(voter.createdAt).toLocaleString()}
@@ -283,7 +358,7 @@ export default function VoterVerificationPage() {
         >
           {selected ? (
             <>
-              <div className={`p-6 overflow-y-auto flex-1 ${selected.status === "pending" ? "pb-40" : "pb-6"}`}>
+              <div className="p-6 overflow-y-auto flex-1">
                 <div className="flex items-center gap-3 mb-6 border-b border-outline-variant pb-2">
                   <button
                     onClick={() => setSelected(null)}
@@ -320,6 +395,36 @@ export default function VoterVerificationPage() {
                   </div>
                   <div>
                     <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2 uppercase">
+                      Class List Roster Match
+                    </label>
+                    <div className="bg-surface-container-low p-3 rounded-lg border border-outline-variant space-y-1">
+                      {selected.classListMatch?.status === "MATCH" && (
+                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-semibold text-xs">
+                          <span className="material-symbols-outlined text-sm">check_circle</span>
+                          <span>In Class List {selected.classListMatch.level ? `(${selected.classListMatch.level}L)` : "(100%)"}</span>
+                        </div>
+                      )}
+                      {selected.classListMatch?.status === "MISMATCH" && (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-semibold text-xs">
+                            <span className="material-symbols-outlined text-sm">warning</span>
+                            <span>Name Mismatch ({selected.classListMatch.similarityScore}% match)</span>
+                          </div>
+                          <p className="text-xs text-on-surface-variant">
+                            Master Roster Name: <strong className="text-on-surface">{selected.classListMatch.masterName}</strong>
+                          </p>
+                        </div>
+                      )}
+                      {selected.classListMatch?.status === "NOT_FOUND" && (
+                        <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-semibold text-xs">
+                          <span className="material-symbols-outlined text-sm">cancel</span>
+                          <span>Not in Class List</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2 uppercase">
                       {selected.documentType === "courseform" ? "Course Form Document" : "Student ID Card"}
                     </label>
                     <div className="aspect-[1.6/1] border-2 border-dashed border-outline rounded-lg overflow-hidden bg-surface-container-low">
@@ -340,12 +445,21 @@ export default function VoterVerificationPage() {
                           </a>
                         </div>
                       ) : (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
-                          alt="Uploaded verification document"
-                          className="w-full h-full object-cover"
-                        />
+                        <div
+                          onClick={() => setIsPreviewOpen(true)}
+                          className="w-full h-full relative cursor-zoom-in group overflow-hidden"
+                          title="Click to zoom / view full document"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
+                            alt="Uploaded verification document"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100">
+                            <span className="material-symbols-outlined text-white text-3xl drop-shadow-md">zoom_in</span>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -353,7 +467,7 @@ export default function VoterVerificationPage() {
               </div>
 
               {selected.status === "pending" && (
-                <div className="absolute bottom-0 w-full p-6 bg-white border-t border-outline-variant flex flex-col gap-3">
+                <div className="p-6 bg-white border-t border-outline-variant flex flex-col gap-3 shrink-0">
                   {actionError && <p className="text-error text-body-sm">{actionError}</p>}
                   {showRejectInput && (
                     <textarea
@@ -388,6 +502,44 @@ export default function VoterVerificationPage() {
           )}
         </section>
       </div>
+
+      {/* Image Preview Modal Overlay */}
+      {isPreviewOpen && selected && (
+        <div
+          className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 cursor-zoom-out animate-fade-in"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <button
+            className="absolute top-6 right-6 text-white hover:text-outline-variant bg-black/40 hover:bg-black/60 p-2 rounded-full transition-all flex items-center justify-center cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPreviewOpen(false);
+            }}
+          >
+            <span className="material-symbols-outlined text-[28px]">close</span>
+          </button>
+          <div
+            className="relative max-w-full max-h-[90vh] flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
+              alt="Uploaded verification document full view"
+              className="max-w-full max-h-[90vh] object-contain rounded shadow-2xl cursor-default"
+            />
+            <a
+              href={`/api/voters/id-card?matricNumber=${encodeURIComponent(selected.matricNumber)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-full font-semibold hover:brightness-110 active:scale-95 transition-all text-xs flex items-center gap-1.5 shadow-lg"
+            >
+              <span className="material-symbols-outlined text-sm">open_in_new</span>
+              Open in New Tab
+            </a>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 import { voterVerifyActionSchema } from "@/lib/validation";
 import { sendVerificationResultEmail } from "@/lib/email";
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await db.$transaction(async (tx) => {
+    await withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
       const voter = await tx.voter.update({
         where: { matricNumber },
         data: {

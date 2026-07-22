@@ -3,8 +3,8 @@ import SiteFooter from "@/components/SiteFooter";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy | NACOSS E-Voting Portal",
-  description: "Privacy Policy and Data Protection standards for the NACOSS Department of Computer Science E-Voting System.",
+  title: "Privacy Policy | NACOSS FUTA Chapter E-Voting Portal",
+  description: "Privacy Policy and Data Protection standards for the NACOSS FUTA Chapter Department of Computer Science E-Voting System.",
 };
 
 export default function PrivacyPage() {
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
               Privacy Policy
             </h1>
             <p className="text-on-surface-variant text-sm md:text-base">
-              Last updated: March 2026 • Effective for all NACOSS Departmental Elections
+              Last updated: March 2026 • Effective for all NACOSS FUTA Chapter Departmental Elections
             </p>
           </div>
 
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
                 1. Overview & Commitment
               </h2>
               <p>
-                The National Association of Computer Science Students (NACOSS) Electoral Committee is committed to protecting the privacy, identity, and voting secrecy of all eligible voters in the Department of Computer Science. This Privacy Policy details how we collect, handle, encrypt, and safeguard your personal data during the e-voting process.
+                The National Association of Computer Science Students (NACOSS FUTA Chapter) Electoral Committee is committed to protecting the privacy, identity, and voting secrecy of all eligible voters in the Department of Computer Science. This Privacy Policy details how we collect, handle, encrypt, and safeguard your personal data during the e-voting process.
               </p>
             </section>
 
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
                 5. Contact & Support
               </h2>
               <p className="text-on-surface-variant">
-                If you have questions regarding this Privacy Policy or suspect unauthorized access to your voting credentials, please contact the NACOSS Electoral Committee via email at{" "}
+                If you have questions regarding this Privacy Policy or suspect unauthorized access to your voting credentials, please contact the NACOSS FUTA Chapter Electoral Committee via email at{" "}
                 <a href="mailto:saintfocus34@gmail.com" className="text-primary font-medium hover:underline">
                   saintfocus34@gmail.com
                 </a>.

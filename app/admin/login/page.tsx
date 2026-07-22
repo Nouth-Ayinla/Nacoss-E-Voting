@@ -43,12 +43,12 @@ export default function AdminLoginPage() {
         <div className="p-stack-lg bg-surface-container-low border-b border-outline-variant text-center">
           <div className="w-12 h-12 flex items-center justify-center mx-auto mb-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="NACOSS Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="font-headline-md text-headline-md font-bold text-charcoal-slate">
             Admin Sign In
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">NACOSS E-Voting Portal</p>
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">NACOSS FUTA Chapter E-Voting Portal</p>
         </div>
 
         <form className="p-stack-lg space-y-stack-md" onSubmit={handleLogin}>

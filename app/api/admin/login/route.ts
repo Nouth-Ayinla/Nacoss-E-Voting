@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { createAdminSession } from "@/lib/session";
 import { adminLoginSchema } from "@/lib/validation";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -23,16 +23,18 @@ export async function POST(req: NextRequest) {
 
   const { email, password } = parsed.data;
 
-  const admin = await db.admin.findUnique({ where: { email } });
-  // Deliberately vague error — don't reveal whether the email exists
-  const invalidResponse = NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+  return withDbRequestContext({ role: "admin-login" }, async (tx) => {
+    const admin = await tx.admin.findUnique({ where: { email } });
+    // Deliberately vague error — don't reveal whether the email exists
+    const invalidResponse = NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
 
-  if (!admin) return invalidResponse;
+    if (!admin) return invalidResponse;
 
-  const passwordMatches = await bcrypt.compare(password, admin.passwordHash);
-  if (!passwordMatches) return invalidResponse;
+    const passwordMatches = await bcrypt.compare(password, admin.passwordHash);
+    if (!passwordMatches) return invalidResponse;
 
-  await createAdminSession(admin.id);
+    await createAdminSession(admin.id);
 
-  return NextResponse.json({ message: "Logged in." });
+    return NextResponse.json({ message: "Logged in." });
+  });
 }

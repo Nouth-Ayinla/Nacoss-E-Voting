@@ -108,7 +108,7 @@ export default function RegisterPage() {
       <main className="flex-grow flex items-center justify-center pt-24 pb-12 px-margin-mobile relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center opacity-[0.04] select-none">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="NACOSS Watermark" className="w-[80%] max-w-[500px] object-contain rotate-[-12deg]" />
+          <img src="/logo.png" alt="NACOSS FUTA Chapter Watermark" className="w-[80%] max-w-[500px] object-contain rotate-[-12deg]" />
         </div>
         <div className="w-full max-w-lg bg-surface-container-lowest border border-outline-variant rounded shadow-sm overflow-hidden">
           <div className="p-stack-lg bg-surface-container-low border-b border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -196,7 +196,7 @@ export default function RegisterPage() {
                   {quota?.isFull ? "Limit Reached (120/120)" : "Next"}
                 </button>
                 <p className="text-center font-label-caps text-[11px] text-on-surface-variant mt-stack-md">
-                  By registering, you agree to the NACOSS Election Guidelines and Data Privacy Policy.
+                  By registering, you agree to the NACOSS FUTA Chapter Election Guidelines and Data Privacy Policy.
                 </p>
               </div>
             </form>
@@ -331,7 +331,7 @@ export default function RegisterPage() {
                   </button>
                 </div>
                 <p className="text-center font-label-caps text-[11px] text-on-surface-variant mt-stack-md">
-                  By registering, you agree to the NACOSS Election Guidelines and Data Privacy Policy.
+                  By registering, you agree to the NACOSS FUTA Chapter Election Guidelines and Data Privacy Policy.
                 </p>
               </div>
             </form>

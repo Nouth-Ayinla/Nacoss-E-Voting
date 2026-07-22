@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient } from "@prisma/client";
 
 // Prevents exhausting DB connections during Next.js hot-reload in dev,

@@ -6,6 +6,7 @@ import ElectionStateControl from "./ElectionStateControl";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Voter Verification", icon: "verified_user" },
+  { href: "/admin/dashboard/class-list", label: "Class List Roster", icon: "badge" },
   { href: "/admin/dashboard/candidates", label: "Candidate Management", icon: "groups" },
   { href: "/admin/dashboard/election", label: "Election Setup", icon: "how_to_vote" },
   { href: "/admin/dashboard/results", label: "Election Results", icon: "analytics" },
@@ -28,7 +29,7 @@ export default function AdminSidebar() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="NACOSS Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-headline-md text-[18px] text-primary font-bold leading-tight">Admin Portal</h1>

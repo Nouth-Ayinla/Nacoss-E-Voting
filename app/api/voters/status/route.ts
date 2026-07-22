@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
@@ -20,13 +20,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const voter = await db.voter.findUnique({
-      where: { matricNumber: matricNumber.trim() },
-      select: {
-        status: true,
-        rejectionReason: true,
-      },
-    });
+    const voter = await withDbRequestContext({ role: "public", matricNumber: matricNumber.trim() }, async (tx) =>
+      tx.voter.findUnique({
+        where: { matricNumber: matricNumber.trim() },
+        select: {
+          status: true,
+          rejectionReason: true,
+        },
+      })
+    );
 
     if (!voter) {
       return NextResponse.json({ status: "not_found" });

@@ -28,10 +28,23 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  if (pathname.startsWith("/api/admin/") && pathname !== "/api/admin/login") {
+    const adminSession = req.cookies.get("admin_session")?.value;
+    if (!adminSession) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      await jwtVerify(adminSession, ADMIN_SECRET);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/dashboard/:path*"],
+  matcher: ["/admin/dashboard/:path*", "/api/admin/:path*"],
 };
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 
 function computeVoteHash(prevHash: string, candidateId: string, position: string, castAt: Date): string {
@@ -14,8 +14,10 @@ export async function GET() {
   const admin = await verifyAdminSession();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const votes = await db.vote.findMany({ orderBy: { castAt: "asc" } });
-  const anchor = await db.voteChainState.findUnique({ where: { id: 1 } });
+  const { votes, anchor } = await withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => ({
+    votes: await tx.vote.findMany({ orderBy: { castAt: "asc" } }),
+    anchor: await tx.voteChainState.findUnique({ where: { id: 1 } }),
+  }));
 
   let runningHash = "GENESIS";
   for (const vote of votes) {

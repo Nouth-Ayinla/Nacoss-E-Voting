@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 import { candidateSchema, verifyBase64ImageMagic } from "@/lib/validation";
 
 export async function GET() {
-  const candidates = await db.candidate.findMany({ orderBy: { position: "asc" } });
+  return withDbRequestContext({ role: "public" }, async (tx) => {
+    const candidates = await tx.candidate.findMany({ orderBy: { position: "asc" } });
 
-  // Strip base64 image payloads from the public response — these can be up to
-  // 3MB each and would be sent on every page load. Proper HTTPS URLs pass through.
-  const sanitised = candidates.map((c) => ({
-    ...c,
-    imageUrl: c.imageUrl?.startsWith("data:") ? null : (c.imageUrl ?? null),
-  }));
+    // Strip base64 image payloads from the public response — these can be up to
+    // 3MB each and would be sent on every page load. Proper HTTPS URLs pass through.
+    const sanitised = candidates.map((c) => ({
+      ...c,
+      imageUrl: c.imageUrl?.startsWith("data:") ? null : (c.imageUrl ?? null),
+    }));
 
-  return NextResponse.json(sanitised);
+    return NextResponse.json(sanitised);
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -36,11 +38,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const candidate = await db.candidate.create({ data: parsed.data });
+  return withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
+    const candidate = await tx.candidate.create({ data: parsed.data });
 
-  await db.auditLog.create({
-    data: { adminId: admin.adminId, action: "candidate_create", metadata: { candidateId: candidate.id } },
+    await tx.auditLog.create({
+      data: { adminId: admin.adminId, action: "candidate_create", metadata: { candidateId: candidate.id } },
+    });
+
+    return NextResponse.json(candidate, { status: 201 });
   });
-
-  return NextResponse.json(candidate, { status: 201 });
 }

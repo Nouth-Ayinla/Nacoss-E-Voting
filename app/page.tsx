@@ -117,7 +117,7 @@ export default function LandingPage() {
 
             <div className="space-y-4">
               <h1 className="font-display-lg text-display-lg text-charcoal-slate max-w-3xl mx-auto tracking-tight leading-[1.1] font-extrabold uppercase">
-                NACOSS 2026 ELECTIONS
+                NACOSS FUTA CHAPTER 2026 ELECTIONS
               </h1>
               <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl mx-auto font-medium">
                 Official Departmental E-Voting Portal.
@@ -278,7 +278,7 @@ export default function LandingPage() {
                   Meet the Candidates
                 </h2>
                 <p className="font-body-sm text-body-sm text-on-surface-variant max-w-md mx-auto">
-                  Browse through the candidates standing for executive posts in NACOSS 2026.
+                  Browse through the candidates standing for executive posts in NACOSS FUTA Chapter 2026.
                 </p>
               </div>
 

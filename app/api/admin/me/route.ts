@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 
 export async function GET() {
   const session = await verifyAdminSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const admin = await db.admin.findUnique({
-    where: { id: session.adminId },
-    select: { email: true, role: true },
-  });
-  if (!admin) return NextResponse.json({ error: "Admin not found" }, { status: 404 });
+  return withDbRequestContext({ role: "admin", adminId: session.adminId }, async (tx) => {
+    const admin = await tx.admin.findUnique({
+      where: { id: session.adminId },
+      select: { id: true, email: true, role: true, createdAt: true },
+    });
 
-  return NextResponse.json({ email: admin.email, role: admin.role });
+    if (!admin) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    return NextResponse.json(admin);
+  });
 }

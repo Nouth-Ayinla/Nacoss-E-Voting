@@ -106,3 +106,56 @@ ALTER TABLE "votes" ADD CONSTRAINT "votes_candidate_id_fkey" FOREIGN KEY ("candi
 
 -- AddForeignKey
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_admin_id_fkey" FOREIGN KEY ("admin_id") REFERENCES "admins"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- Row-level security for voters
+ALTER TABLE "voters" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "voters" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS voters_select_admin ON "voters";
+CREATE POLICY voters_select_admin ON "voters"
+    FOR SELECT
+    USING (current_setting('app.request_role', true) = 'admin');
+
+DROP POLICY IF EXISTS voters_select_register_window ON "voters";
+CREATE POLICY voters_select_register_window ON "voters"
+    FOR SELECT
+    USING (
+        current_setting('app.request_role', true) = 'voter-register'
+        AND created_at >= date_trunc('day', now())
+    );
+
+DROP POLICY IF EXISTS voters_select_lookup ON "voters";
+CREATE POLICY voters_select_lookup ON "voters"
+    FOR SELECT
+    USING (
+        current_setting('app.request_role', true) IN ('public', 'voter', 'voter-register')
+        AND (
+            matric_number = current_setting('app.matric_number', true)
+            OR email = current_setting('app.email', true)
+        )
+    );
+
+DROP POLICY IF EXISTS voters_insert_register ON "voters";
+CREATE POLICY voters_insert_register ON "voters"
+    FOR INSERT
+    WITH CHECK (current_setting('app.request_role', true) = 'voter-register');
+
+DROP POLICY IF EXISTS voters_update_admin ON "voters";
+CREATE POLICY voters_update_admin ON "voters"
+    FOR UPDATE
+    USING (current_setting('app.request_role', true) = 'admin')
+    WITH CHECK (current_setting('app.request_role', true) = 'admin');
+
+DROP POLICY IF EXISTS voters_update_self_vote ON "voters";
+CREATE POLICY voters_update_self_vote ON "voters"
+    FOR UPDATE
+    USING (
+        current_setting('app.request_role', true) = 'voter'
+        AND matric_number = current_setting('app.matric_number', true)
+    )
+    WITH CHECK (
+        current_setting('app.request_role', true) = 'voter'
+        AND matric_number = current_setting('app.matric_number', true)
+    );
+
+REVOKE UPDATE, DELETE ON "voters" FROM PUBLIC;

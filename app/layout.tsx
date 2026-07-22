@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NACOSS E-Voting Portal",
-  description: "Secure, anonymous e-voting for the NACOSS department",
+  title: "NACOSS FUTA Chapter E-Voting Portal",
+  description: "Secure, anonymous e-voting for the NACOSS FUTA chapter",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 import { candidateSchema, verifyBase64ImageMagic } from "@/lib/validation";
 
@@ -24,13 +24,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
-  const candidate = await db.candidate.update({ where: { id }, data: parsed.data });
+  return withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
+    const candidate = await tx.candidate.update({ where: { id }, data: parsed.data });
 
-  await db.auditLog.create({
-    data: { adminId: admin.adminId, action: "candidate_update", metadata: { candidateId: id } },
+    await tx.auditLog.create({
+      data: { adminId: admin.adminId, action: "candidate_update", metadata: { candidateId: id } },
+    });
+
+    return NextResponse.json(candidate);
   });
-
-  return NextResponse.json(candidate);
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -38,11 +40,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  await db.candidate.delete({ where: { id } });
+  return withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
+    await tx.candidate.delete({ where: { id } });
 
-  await db.auditLog.create({
-    data: { adminId: admin.adminId, action: "candidate_delete", metadata: { candidateId: id } },
+    await tx.auditLog.create({
+      data: { adminId: admin.adminId, action: "candidate_delete", metadata: { candidateId: id } },
+    });
+
+    return NextResponse.json({ message: "Candidate deleted." });
   });
-
-  return NextResponse.json({ message: "Candidate deleted." });
 }

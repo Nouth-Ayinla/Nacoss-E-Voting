@@ -3,8 +3,8 @@ import SiteFooter from "@/components/SiteFooter";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Election Guidelines | NACOSS E-Voting Portal",
-  description: "Official voting rules, registration instructions, and step-by-step electoral guidelines for NACOSS elections.",
+  title: "Election Guidelines | NACOSS FUTA Chapter E-Voting Portal",
+  description: "Official voting rules, registration instructions, and step-by-step electoral guidelines for NACOSS FUTA Chapter elections.",
 };
 
 export default function GuidelinesPage() {

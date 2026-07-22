@@ -21,16 +21,16 @@ function RegisterSuccessContent() {
     <main className="font-body-md text-on-surface selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col items-center justify-center p-gutter relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center opacity-[0.04] select-none">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="NACOSS Watermark" className="w-[80%] max-w-[500px] object-contain rotate-[-12deg]" />
+        <img src="/logo.png" alt="NACOSS FUTA Chapter Watermark" className="w-[80%] max-w-[500px] object-contain rotate-[-12deg]" />
       </div>
       <div className="fixed top-0 left-0 w-full h-1 bg-primary-container z-50" />
 
       <div className="w-full max-w-xl mx-auto flex flex-col items-center">
         <div className="mb-stack-lg text-center flex flex-col items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="NACOSS Logo" className="w-16 h-16 object-contain mb-2" />
+          <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-16 h-16 object-contain mb-2" />
           <h1 className="font-headline-md text-headline-md font-bold text-primary tracking-tight">
-            NACOSS E-Voting Portal
+            NACOSS FUTA Chapter E-Voting Portal
           </h1>
           <p className="font-label-caps text-label-caps text-on-surface-variant mt-1 uppercase">
             Department of Computer Science
@@ -112,7 +112,7 @@ function RegisterSuccessContent() {
 
         <footer className="mt-stack-lg text-center">
           <p className="font-label-caps text-label-caps text-on-surface-variant">
-            © 2026 NACOSS Department of Computer Science. All rights reserved.
+            © 2026 NACOSS FUTA Chapter Department of Computer Science. All rights reserved.
           </p>
         </footer>
       </div>

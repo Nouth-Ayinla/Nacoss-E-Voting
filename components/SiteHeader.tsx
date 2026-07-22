@@ -7,11 +7,11 @@ export default function SiteHeader() {
         <Link href="/" className="flex items-center gap-4 hover:opacity-90 transition-opacity">
           <div className="w-10 h-10 flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="NACOSS Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col">
             <span className="font-headline-md text-headline-md font-bold text-primary">
-              NACOSS E-Voting Portal
+              NACOSS FUTA Chapter E-Voting Portal
             </span>
             <span className="text-[10px] font-label-caps uppercase tracking-widest text-on-surface-variant">
               Dept. Computer Science

@@ -3,8 +3,8 @@ import SiteFooter from "@/components/SiteFooter";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms of Service | NACOSS E-Voting Portal",
-  description: "Terms of Service and Code of Conduct governing participation in NACOSS Departmental E-Voting.",
+  title: "Terms of Service | NACOSS FUTA Chapter E-Voting Portal",
+  description: "Terms of Service and Code of Conduct governing participation in NACOSS FUTA Chapter Departmental E-Voting.",
 };
 
 export default function TermsPage() {
@@ -44,7 +44,7 @@ export default function TermsPage() {
                 1. Acceptance of Terms
               </h2>
               <p>
-                By accessing or registering on the NACOSS Department of Computer Science E-Voting Portal, you agree to comply with these Terms of Service, the departmental constitution, and the rulings of the NACOSS Electoral Committee (ELECO).
+                By accessing or registering on the NACOSS FUTA Chapter Department of Computer Science E-Voting Portal, you agree to comply with these Terms of Service, the departmental constitution, and the rulings of the NACOSS FUTA Chapter Electoral Committee (ELECO).
               </p>
             </section>
 
@@ -85,7 +85,7 @@ export default function TermsPage() {
                 4. Electoral Committee Powers
               </h2>
               <p className="text-on-surface-variant">
-                The NACOSS Electoral Committee reserves the absolute right to verify credentials, reject invalid registrations, pause elections in the event of technical emergencies, and disqualify any candidate or voter found violating electoral integrity rules.
+                The NACOSS FUTA Chapter Electoral Committee reserves the absolute right to verify credentials, reject invalid registrations, pause elections in the event of technical emergencies, and disqualify any candidate or voter found violating electoral integrity rules.
               </p>
             </section>
 
@@ -95,7 +95,7 @@ export default function TermsPage() {
                 5. Limitation of Liability
               </h2>
               <p className="text-on-surface-variant">
-                The platform is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. While every effort is made to maintain 99.9% uptime and security, NACOSS and the system developers shall not be liable for internet disruptions on the voter&apos;s end or unauthorized access arising from a voter sharing their credentials.
+                The platform is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. While every effort is made to maintain 99.9% uptime and security, NACOSS FUTA Chapter and the system developers shall not be liable for internet disruptions on the voter&apos;s end or unauthorized access arising from a voter sharing their credentials.
               </p>
             </section>
           </div>

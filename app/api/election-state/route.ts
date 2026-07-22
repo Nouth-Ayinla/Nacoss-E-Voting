@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 import { electionStateSchema } from "@/lib/validation";
 
 export async function GET() {
-  const config = await db.electionConfig.findUnique({ where: { id: 1 } });
-  return NextResponse.json({
-    state: config?.state ?? "upcoming",
-    startTime: config?.startTime ?? null,
-    endTime: config?.endTime ?? null,
+  return withDbRequestContext({ role: "public" }, async (tx) => {
+    const config = await tx.electionConfig.findUnique({ where: { id: 1 } });
+    return NextResponse.json({
+      state: config?.state ?? "upcoming",
+      startTime: config?.startTime ?? null,
+      endTime: config?.endTime ?? null,
+    });
   });
 }
 
@@ -29,19 +31,21 @@ export async function PATCH(req: NextRequest) {
   if (startTime !== undefined) updateData.startTime = startTime ? new Date(startTime) : null;
   if (endTime !== undefined) updateData.endTime = endTime ? new Date(endTime) : null;
 
-  const config = await db.electionConfig.upsert({
-    where: { id: 1 },
-    update: updateData,
-    create: { id: 1, ...updateData },
-  });
+  return withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
+    const config = await tx.electionConfig.upsert({
+      where: { id: 1 },
+      update: updateData,
+      create: { id: 1, ...updateData },
+    });
 
-  await db.auditLog.create({
-    data: {
-      adminId: admin.adminId,
-      action: "election_config_change",
-      metadata: { state, startTime, endTime },
-    },
-  });
+    await tx.auditLog.create({
+      data: {
+        adminId: admin.adminId,
+        action: "election_config_change",
+        metadata: { state, startTime, endTime },
+      },
+    });
 
-  return NextResponse.json(config);
+    return NextResponse.json(config);
+  });
 }

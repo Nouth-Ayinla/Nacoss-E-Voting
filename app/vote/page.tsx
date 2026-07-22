@@ -105,8 +105,8 @@ export default function VotePage() {
       <main className="min-h-screen flex flex-col items-center justify-center bg-background px-margin-mobile">
         <div className="flex items-center gap-2 mb-stack-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="NACOSS Logo" className="w-8 h-8 object-contain" />
-          <h1 className="text-headline-md font-headline-md font-bold text-primary tracking-tight">NACOSS Vote</h1>
+          <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-8 h-8 object-contain" />
+          <h1 className="text-headline-md font-headline-md font-bold text-primary tracking-tight">NACOSS FUTA Chapter Vote</h1>
         </div>
 
         <div className="w-full max-w-md bg-white border border-outline-variant p-stack-lg rounded-lg shadow-sm">
@@ -200,8 +200,8 @@ export default function VotePage() {
       <header className="bg-surface sticky top-0 z-40 flex justify-between items-center px-margin-mobile py-stack-sm">
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="NACOSS Logo" className="w-7 h-7 object-contain" />
-          <h1 className="text-headline-md font-headline-md font-bold text-primary">NACOSS Vote</h1>
+          <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-7 h-7 object-contain" />
+          <h1 className="text-headline-md font-headline-md font-bold text-primary">NACOSS FUTA Chapter Vote</h1>
         </div>
       </header>
 
