@@ -62,6 +62,7 @@ export const voterVerifyActionSchema = z.object({
 export const candidateSchema = z.object({
   name: z.string().trim().min(2).max(100),
   position: z.string().trim().min(2).max(50),
+  level: z.number().int().refine(val => [100, 200, 300].includes(val), "Level must be 100, 200, or 300"),
   imageUrl: z
     .string()
     .max(8000000, "Image payload is too large (max ~5MB)")

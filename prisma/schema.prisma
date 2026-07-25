@@ -56,6 +56,7 @@ model Candidate {
   id        String   @id @default(uuid())
   name      String
   position  String
+  level     Int      @default(100)
   imageUrl  String?  @map("image_url")
   manifesto String?
   createdAt DateTime @default(now()) @map("created_at")

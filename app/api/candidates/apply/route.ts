@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
         data: {
           name: parsed.data.name,
           position: parsed.data.position,
+          level: parsed.data.level,
           imageUrl: parsed.data.imageUrl || null,
           manifesto: parsed.data.manifesto || null,
         },

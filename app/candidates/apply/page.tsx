@@ -25,6 +25,7 @@ export default function CandidateApplyPage() {
   const [step, setStep] = useState<Step>(1);
   const [fullName, setFullName] = useState("");
   const [positionType, setPositionType] = useState("");
+  const [levelType, setLevelType] = useState("");
   const [manifesto, setManifesto] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -73,6 +74,10 @@ export default function CandidateApplyPage() {
       setError("Please select a position.");
       return;
     }
+    if (!levelType) {
+      setError("Please select your academic level.");
+      return;
+    }
 
     setStep(2);
   }
@@ -92,6 +97,11 @@ export default function CandidateApplyPage() {
       setStep(1);
       return;
     }
+    if (!levelType) {
+      setError("Please select your academic level.");
+      setStep(1);
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -102,6 +112,7 @@ export default function CandidateApplyPage() {
         body: JSON.stringify({
           name: fullName.trim(),
           position: positionType,
+          level: parseInt(levelType, 10),
           imageUrl: imageUrl || undefined,
           manifesto: manifesto.trim() || undefined,
         }),
@@ -117,6 +128,7 @@ export default function CandidateApplyPage() {
         // Clear form
         setFullName("");
         setPositionType("");
+        setLevelType("");
         setManifesto("");
         setImageUrl("");
         setImageFile(null);
@@ -215,7 +227,7 @@ export default function CandidateApplyPage() {
                       </label>
                       <select
                         id="positionSelect"
-                        className="w-full h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-body-md text-charcoal-slate"
+                        className="w-full h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-body-md text-charcoal-slate bg-white"
                         value={positionType}
                         onChange={(e) => setPositionType(e.target.value)}
                         required
@@ -224,6 +236,24 @@ export default function CandidateApplyPage() {
                         {POSITIONS.map((pos) => (
                           <option key={pos} value={pos}>{pos}</option>
                         ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-stack-xs">
+                      <label className="font-label-caps text-label-caps text-on-surface-variant uppercase text-xs" htmlFor="levelSelect">
+                        Academic Level (100 - 300)
+                      </label>
+                      <select
+                        id="levelSelect"
+                        className="w-full h-12 px-4 bg-white border border-outline-variant rounded focus:ring-2 focus:ring-primary-container focus:border-primary transition-all font-body-md text-charcoal-slate bg-white"
+                        value={levelType}
+                        onChange={(e) => setLevelType(e.target.value)}
+                        required
+                      >
+                        <option value="" disabled>-- Select Level --</option>
+                        <option value="100">100 Level</option>
+                        <option value="200">200 Level</option>
+                        <option value="300">300 Level</option>
                       </select>
                     </div>
 

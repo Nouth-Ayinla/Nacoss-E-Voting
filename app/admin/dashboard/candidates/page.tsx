@@ -21,6 +21,7 @@ type Candidate = {
   id: string;
   name: string;
   position: string;
+  level: number;
   imageUrl: string | null;
   manifesto: string | null;
 };
@@ -28,11 +29,12 @@ type Candidate = {
 type FormState = {
   name: string;
   position: string;
+  level: string;
   imageUrl: string;
   manifesto: string;
 };
 
-const EMPTY_FORM: FormState = { name: "", position: "", imageUrl: "", manifesto: "" };
+const EMPTY_FORM: FormState = { name: "", position: "", level: "", imageUrl: "", manifesto: "" };
 
 export default function CandidateManagementPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -67,6 +69,7 @@ export default function CandidateManagementPage() {
     setForm({
       name: candidate.name,
       position: candidate.position,
+      level: String(candidate.level),
       imageUrl: candidate.imageUrl ?? "",
       manifesto: candidate.manifesto ?? "",
     });
@@ -82,6 +85,7 @@ export default function CandidateManagementPage() {
     const payload = {
       name: form.name.trim(),
       position: form.position.trim(),
+      level: parseInt(form.level, 10),
       imageUrl: form.imageUrl.trim() || undefined,
       manifesto: form.manifesto.trim() || undefined,
     };
@@ -162,7 +166,7 @@ export default function CandidateManagementPage() {
             <h2 className="font-headline-md text-headline-md text-on-surface mb-4">
               {editingId ? "Edit Candidate" : "New Candidate"}
             </h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">Name</label>
                 <input
@@ -188,9 +192,25 @@ export default function CandidateManagementPage() {
                   ))}
                 </select>
               </div>
+              <div className="space-y-1">
+                <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">
+                  Candidate Level (100 - 300)
+                </label>
+                <select
+                  className="w-full h-11 px-3 border border-outline-variant rounded focus:border-primary transition-all bg-white"
+                  value={form.level}
+                  onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))}
+                  required
+                >
+                  <option value="" disabled>-- Select Level --</option>
+                  <option value="100">100 Level</option>
+                  <option value="200">200 Level</option>
+                  <option value="300">300 Level</option>
+                </select>
+              </div>
 
               {/* Photo Upload & Preview Component */}
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 md:col-span-3">
                 <label className="font-label-caps text-label-caps text-on-surface-variant uppercase flex items-center justify-between">
                   <span>Candidate Photo</span>
                   <span className="normal-case text-outline text-xs">Upload Image File or Paste URL</span>
@@ -240,7 +260,7 @@ export default function CandidateManagementPage() {
                 </div>
               </div>
 
-              <div className="space-y-1 md:col-span-2">
+              <div className="space-y-1 md:col-span-3">
                 <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">
                   Manifesto <span className="normal-case text-outline">(optional)</span>
                 </label>
@@ -252,9 +272,9 @@ export default function CandidateManagementPage() {
                 />
               </div>
 
-              {error && <p className="text-error text-body-sm md:col-span-2">{error}</p>}
+              {error && <p className="text-error text-body-sm md:col-span-3">{error}</p>}
 
-              <div className="md:col-span-2 flex gap-3">
+              <div className="md:col-span-3 flex gap-3">
                 <button
                   type="submit"
                   disabled={isSaving}
@@ -325,9 +345,14 @@ export default function CandidateManagementPage() {
                             <h4 className="font-bold text-body-lg text-charcoal-slate truncate">
                               {candidate.name}
                             </h4>
-                            <span className="inline-block text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-1">
-                              {candidate.position}
-                            </span>
+                            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1.5">
+                              <span className="inline-block text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                {candidate.position}
+                              </span>
+                              <span className="inline-block text-[10px] font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                {candidate.level} Level
+                              </span>
+                            </div>
                           </div>
                         </div>
 
