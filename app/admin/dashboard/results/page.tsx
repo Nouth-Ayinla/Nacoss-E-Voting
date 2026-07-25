@@ -8,22 +8,45 @@ type ResultsResponse = {
   totalVotesCast: number;
   totalVerifiedVoters: number;
   turnoutPercent: number;
+  resultsPublished: boolean;
 };
 
 export default function ResultsPage() {
   const [data, setData] = useState<ResultsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTogglingPublish, setIsTogglingPublish] = useState(false);
+
+  async function load() {
+    const res = await fetch("/api/results");
+    if (res.ok) setData(await res.json());
+    setIsLoading(false);
+  }
 
   useEffect(() => {
-    async function load() {
-      const res = await fetch("/api/results");
-      if (res.ok) setData(await res.json());
-      setIsLoading(false);
-    }
     load();
     const interval = setInterval(load, 15000); // live-ish refresh
     return () => clearInterval(interval);
   }, []);
+
+  async function handleTogglePublish() {
+    if (!data) return;
+    setIsTogglingPublish(true);
+    try {
+      const res = await fetch("/api/election-state", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resultsPublished: !data.resultsPublished }),
+      });
+      if (res.ok) {
+        const updatedConfig = await res.json();
+        setData((prev) => prev ? { ...prev, resultsPublished: updatedConfig.resultsPublished } : null);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsTogglingPublish(false);
+    }
+  }
 
   return (
     <>
@@ -33,6 +56,31 @@ export default function ResultsPage() {
           <p className="text-on-surface-variant">Loading results...</p>
         ) : (
           <>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-outline-variant rounded-xl shadow-sm">
+              <div>
+                <h2 className="font-semibold text-charcoal-slate text-body-md">Results Visibility</h2>
+                <p className="text-xs text-on-surface-variant">
+                  {data.resultsPublished 
+                    ? "Results are currently published and visible on the landing page."
+                    : "Results are hidden from the public. Click 'Publish' to show them on the landing page."}
+                </p>
+              </div>
+              <button
+                onClick={handleTogglePublish}
+                disabled={isTogglingPublish}
+                className={`px-5 py-2.5 rounded-full font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 ${
+                  data.resultsPublished
+                    ? "bg-amber-600 text-white hover:bg-amber-700"
+                    : "bg-primary text-white hover:bg-primary/90"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {data.resultsPublished ? "visibility_off" : "publish"}
+                </span>
+                <span>{isTogglingPublish ? "Updating..." : data.resultsPublished ? "Unpublish Results" : "Publish Results"}</span>
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter">
               <div className="md:col-span-1 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center text-center">
                 <div className="relative w-32 h-32 mb-4">

@@ -102,10 +102,12 @@ model VoteReceipt {
 }
 
 model ElectionConfig {
-  id        Int           @id @default(1)
-  state     ElectionState @default(upcoming)
-  startTime DateTime?     @map("start_time")
-  endTime   DateTime?     @map("end_time")
+  id               Int           @id @default(1)
+  state            ElectionState @default(upcoming)
+  startTime        DateTime?     @map("start_time")
+  endTime          DateTime?     @map("end_time")
+  resultsPublished Boolean       @default(false) @map("results_published")
+  electionName     String        @default("NACOSS FUTA CHAPTER 2026 ELECTIONS") @map("election_name")
 
   @@map("election_config")
 }

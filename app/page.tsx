@@ -17,13 +17,23 @@ type ElectionConfig = {
   state: "upcoming" | "ongoing" | "ended";
   startTime: string | null;
   endTime: string | null;
+  resultsPublished?: boolean;
+  electionName?: string;
 };
 
 type LookupStatus = "pending" | "verified" | "rejected" | "not_found" | null;
 
+type ResultsData = {
+  resultsByPosition: Record<string, { candidateId: string; name: string; imageUrl: string | null; votes: number }[]>;
+  totalVotesCast: number;
+  totalVerifiedVoters: number;
+  turnoutPercent: number;
+};
+
 export default function LandingPage() {
   const [election, setElection] = useState<ElectionConfig | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [results, setResults] = useState<ResultsData | null>(null);
   const [matricNumber, setMatricNumber] = useState("");
   const [statusResult, setStatusResult] = useState<LookupStatus>(null);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
@@ -36,7 +46,17 @@ export default function LandingPage() {
     fetch("/api/election-state")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) setElection(data);
+        if (data) {
+          setElection(data);
+          if (data.resultsPublished) {
+            fetch("/api/results")
+              .then((res) => (res.ok ? res.json() : null))
+              .then((resultsData) => {
+                if (resultsData) setResults(resultsData);
+              })
+              .catch(() => {});
+          }
+        }
       })
       .catch(() => {
         // Default fallback state when server/network is offline
@@ -117,7 +137,7 @@ export default function LandingPage() {
 
             <div className="space-y-4">
               <h1 className="font-display-lg text-display-lg text-charcoal-slate max-w-3xl mx-auto tracking-tight leading-[1.1] font-extrabold uppercase">
-                NACOSS FUTA CHAPTER 2026 ELECTIONS
+                {election?.electionName ?? "NACOSS FUTA CHAPTER ELECTIONS"}
               </h1>
               <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl mx-auto font-medium">
                 Official Departmental E-Voting Portal.
@@ -151,6 +171,130 @@ export default function LandingPage() {
               )}
             </div>
           </section>
+
+          {/* Election Results Board */}
+          {results && (
+            <section className="bg-white border-2 border-primary/20 rounded-2xl p-8 shadow-md space-y-8 animate-slide-in relative overflow-hidden">
+              {/* Subtle background highlight for premium look */}
+              <div className="absolute -top-16 -right-16 w-36 h-36 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="text-center space-y-2">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-800 font-label-caps text-xs font-bold uppercase tracking-wider font-semibold">
+                  <span className="material-symbols-outlined text-sm animate-pulse">emoji_events</span>
+                  Official Election Results Published
+                </span>
+                <h2 className="font-headline-lg text-headline-lg font-extrabold text-charcoal-slate tracking-tight uppercase">
+                  Election Results
+                </h2>
+                <p className="font-body-sm text-body-sm text-on-surface-variant max-w-md mx-auto">
+                  Final authenticated votes for each contested position. Turnout is calculated based on verified voter participation.
+                </p>
+              </div>
+
+              {/* Turnout Stats Card */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-surface-container-low p-6 rounded-xl border border-outline-variant/60 text-center">
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider font-label-caps">Total Voters Turnout</span>
+                  <div className="text-2xl font-extrabold text-primary">{results.turnoutPercent}%</div>
+                </div>
+                <div className="space-y-1 border-t sm:border-t-0 sm:border-x border-outline-variant/60 py-3 sm:py-0">
+                  <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider font-label-caps">Total Ballots Cast</span>
+                  <div className="text-2xl font-extrabold text-charcoal-slate">{results.totalVotesCast}</div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider font-label-caps">Verified Registered Voters</span>
+                  <div className="text-2xl font-extrabold text-charcoal-slate">{results.totalVerifiedVoters}</div>
+                </div>
+              </div>
+
+              {/* Position Results breakdown */}
+              <div className="space-y-8">
+                {Object.entries(results.resultsByPosition).map(([position, list]) => {
+                  const totalVotes = list.reduce((sum, c) => sum + c.votes, 0);
+                  return (
+                    <div key={position} className="space-y-4 border border-outline-variant/60 p-6 rounded-xl bg-surface-container-low/20">
+                      <div className="flex items-center justify-between border-b border-outline-variant/40 pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-primary" />
+                          <h3 className="font-bold text-charcoal-slate text-body-lg">
+                            Post: {position}
+                          </h3>
+                        </div>
+                        <span className="text-xs font-medium text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-full">
+                          Total Position Votes: <strong className="text-primary">{totalVotes}</strong>
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        {list.map((candidate, idx) => {
+                          const isWinner = idx === 0 && candidate.votes > 0;
+                          const pct = totalVotes > 0 ? (candidate.votes / totalVotes) * 100 : 0;
+                          return (
+                            <div
+                              key={candidate.candidateId}
+                              className={`flex flex-col justify-between p-4 border rounded-xl bg-white shadow-xs relative overflow-hidden transition-all ${
+                                isWinner ? "border-emerald-500 bg-emerald-50/10 shadow-sm" : "border-outline-variant/60"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3.5">
+                                <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden text-sm shrink-0 shadow-inner">
+                                  {candidate.imageUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                                  ) : (
+                                    candidate.name
+                                      .split(" ")
+                                      .slice(0, 2)
+                                      .map((n) => n[0])
+                                      .join("")
+                                  )}
+                                </div>
+
+                                <div className="min-w-0 flex-grow">
+                                  <div className="flex items-center gap-1.5">
+                                    <h4 className="font-bold text-charcoal-slate text-body-md truncate">
+                                      {candidate.name}
+                                    </h4>
+                                    {isWinner && (
+                                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider border border-emerald-200">
+                                        <span className="material-symbols-outlined text-xs">workspace_premium</span>
+                                        Elected
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-baseline gap-1 mt-0.5">
+                                    <span className="text-body-lg font-extrabold text-primary">{candidate.votes}</span>
+                                    <span className="text-xs font-semibold text-on-surface-variant">
+                                      {candidate.votes === 1 ? "Vote" : "Votes"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 space-y-1">
+                                <div className="flex justify-between items-center text-[10px] font-semibold text-on-surface-variant">
+                                  <span>Vote Share</span>
+                                  <span>{pct.toFixed(1)}%</span>
+                                </div>
+                                <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden p-0.5 border border-outline-variant/30">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-1000 ${
+                                      isWinner ? "bg-emerald-500" : "bg-primary"
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Stepper Workflow Section */}
           <section className="bg-white border border-outline-variant rounded-xl p-8 shadow-sm space-y-8">

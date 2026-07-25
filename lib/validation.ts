@@ -64,7 +64,7 @@ export const candidateSchema = z.object({
   position: z.string().trim().min(2).max(50),
   imageUrl: z
     .string()
-    .max(3000000, "Image payload is too large (max ~2MB)")
+    .max(8000000, "Image payload is too large (max ~5MB)")
     .refine(
       (val) => !val || val.startsWith("http://") || val.startsWith("https://") || /^data:image\/(jpeg|jpg|png|webp|gif|svg\+xml);base64,/.test(val),
       "Image must be a valid HTTP(S) URL or base64 image data URI"
@@ -77,6 +77,8 @@ export const electionStateSchema = z.object({
   state: z.enum(["upcoming", "ongoing", "ended"]).optional(),
   startTime: z.string().nullable().optional(),
   endTime: z.string().nullable().optional(),
+  resultsPublished: z.boolean().optional(),
+  electionName: z.string().min(3).max(100).optional(),
 });
 
 // --- Image magic-bytes verification ---

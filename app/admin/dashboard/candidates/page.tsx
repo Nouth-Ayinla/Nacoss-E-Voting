@@ -3,6 +3,20 @@
 import { useEffect, useState } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 
+const POSITIONS = [
+  "President",
+  "Vice President",
+  "General Secretary",
+  "Assistant General Secretary",
+  "Financial Secretary",
+  "Public Relation Officer",
+  "Treasurer",
+  "Welfare Director",
+  "Director of Sports",
+  "Director of Socials",
+  "Director of Software",
+];
+
 type Candidate = {
   id: string;
   name: string;
@@ -136,9 +150,9 @@ export default function CandidateManagementPage() {
           </div>
           <button
             onClick={openCreateForm}
-            className="bg-primary text-white px-4 py-2 rounded-full font-semibold text-body-sm flex items-center gap-2 hover:opacity-90 transition-opacity w-fit"
+            className="bg-primary text-white px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-2 hover:opacity-95 transition-all shadow-sm w-fit"
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
+            <span className="material-symbols-outlined text-[16px]">add</span>
             Add Candidate
           </button>
         </div>
@@ -162,13 +176,17 @@ export default function CandidateManagementPage() {
                 <label className="font-label-caps text-label-caps text-on-surface-variant uppercase">
                   Position / Executive Post
                 </label>
-                <input
-                  className="w-full h-11 px-3 border border-outline-variant rounded focus:border-primary transition-all"
-                  placeholder="e.g. President"
+                <select
+                  className="w-full h-11 px-3 border border-outline-variant rounded focus:border-primary transition-all bg-white"
                   value={form.position}
                   onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
                   required
-                />
+                >
+                  <option value="" disabled>-- Select Position --</option>
+                  {POSITIONS.map((pos) => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Photo Upload & Preview Component */}
@@ -227,8 +245,8 @@ export default function CandidateManagementPage() {
                   Manifesto <span className="normal-case text-outline">(optional)</span>
                 </label>
                 <textarea
-                  className="w-full px-3 py-2 border border-outline-variant rounded focus:border-primary transition-all"
-                  rows={3}
+                  className="w-full px-3 py-2 border border-outline-variant rounded focus:border-primary transition-all font-body-md text-charcoal-slate"
+                  rows={4}
                   value={form.manifesto}
                   onChange={(e) => setForm((f) => ({ ...f, manifesto: e.target.value }))}
                 />
@@ -240,14 +258,14 @@ export default function CandidateManagementPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="bg-primary text-white px-4 py-2 rounded-full font-semibold text-body-sm disabled:opacity-60"
+                  className="bg-primary text-white px-5 py-2.5 rounded-full font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-60"
                 >
                   {isSaving ? "Saving..." : editingId ? "Save Changes" : "Create Candidate"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
-                  className="border border-outline-variant px-4 py-2 rounded-full font-semibold text-body-sm"
+                  className="border border-outline-variant px-5 py-2.5 rounded-full font-bold text-xs bg-white hover:bg-surface-container transition-all"
                 >
                   Cancel
                 </button>
@@ -257,56 +275,97 @@ export default function CandidateManagementPage() {
         )}
 
         {isLoading ? (
-          <p className="text-on-surface-variant">Loading candidates...</p>
+          <div className="text-center py-12 text-on-surface-variant font-medium">Loading candidates...</div>
         ) : Object.keys(byPosition).length === 0 ? (
-          <p className="text-on-surface-variant">No candidates added yet.</p>
+          <div className="text-center py-12 bg-white border border-outline-variant rounded-xl shadow-sm">
+            <span className="material-symbols-outlined text-4xl text-outline mb-2">groups_3</span>
+            <p className="text-on-surface-variant font-medium">No candidates registered yet.</p>
+          </div>
         ) : (
-          Object.entries(byPosition).map(([position, list]) => (
-            <section key={position} className="bg-white border border-outline-variant rounded-xl overflow-hidden shadow-sm">
-              <div className="px-6 py-4 border-b border-outline-variant bg-surface-container-low/30">
-                <h3 className="font-headline-md text-on-surface">{position}</h3>
+          <div className="space-y-8">
+            {Object.entries(byPosition).map(([position, list]) => (
+              <div key={position} className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-2">
+                  <h3 className="font-headline-md text-[16px] font-bold text-charcoal-slate uppercase tracking-wide">
+                    {position}
+                  </h3>
+                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                    {list.length} Candidate{list.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {list.map((candidate) => (
+                    <div
+                      key={candidate.id}
+                      className="bg-white border border-outline-variant rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4 relative overflow-hidden group"
+                    >
+                      <div className="space-y-4">
+                        {/* Candidate Identity Header (Centered & Enlarged Photo) */}
+                        <div className="flex flex-col items-center text-center gap-3">
+                          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-surface-container-high border-2 border-primary/20 flex items-center justify-center text-primary font-bold flex-shrink-0 overflow-hidden shadow-md group-hover:border-primary/40 transition-colors">
+                            {candidate.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={candidate.imageUrl}
+                                alt={candidate.name}
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+                              />
+                            ) : (
+                              <span className="text-xl font-extrabold">
+                                {candidate.name
+                                  .split(" ")
+                                  .slice(0, 2)
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </span>
+                            )}
+                          </div>
+                          <div className="w-full">
+                            <h4 className="font-bold text-body-lg text-charcoal-slate truncate">
+                              {candidate.name}
+                            </h4>
+                            <span className="inline-block text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-1">
+                              {candidate.position}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Manifesto Scrollable Text Box */}
+                        <div className="bg-surface-container-low/40 p-4 rounded-xl text-body-sm text-on-surface-variant font-medium leading-relaxed max-h-36 overflow-y-auto border border-outline-variant/30">
+                          <span className="text-[10px] font-bold uppercase tracking-wider block text-outline mb-1.5 font-label-caps">
+                            Manifesto / Agenda
+                          </span>
+                          <p className="whitespace-pre-wrap">
+                            {candidate.manifesto || <span className="italic text-outline">No manifesto provided.</span>}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Admin Actions */}
+                      <div className="flex items-center justify-end gap-2 border-t border-outline-variant/30 pt-3">
+                        <button
+                          onClick={() => openEditForm(candidate)}
+                          className="flex items-center justify-center gap-1.5 px-4 py-2 border border-outline-variant text-charcoal-slate hover:bg-surface-container-low rounded-full text-xs font-semibold shadow-xs transition-all active:scale-95"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(candidate.id)}
+                          disabled={deletingId === candidate.id}
+                          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-error-container text-on-error-container hover:bg-error-container/90 disabled:opacity-60 rounded-full text-xs font-semibold shadow-xs transition-all active:scale-95"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                          <span>{deletingId === candidate.id ? "..." : "Delete"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="divide-y divide-outline-variant/30">
-                {list.map((candidate) => (
-                  <div key={candidate.id} className="p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant font-bold flex-shrink-0 overflow-hidden">
-                      {candidate.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                      ) : (
-                        candidate.name
-                          .split(" ")
-                          .slice(0, 2)
-                          .map((n) => n[0])
-                          .join("")
-                      )}
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <p className="font-semibold text-on-surface truncate">{candidate.name}</p>
-                      {candidate.manifesto && (
-                        <p className="text-body-sm text-on-surface-variant truncate">{candidate.manifesto}</p>
-                      )}
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => openEditForm(candidate)}
-                        className="p-2 hover:bg-surface-container-low rounded-full transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-on-surface-variant text-[20px]">edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(candidate.id)}
-                        disabled={deletingId === candidate.id}
-                        className="p-2 hover:bg-error-container rounded-full transition-colors disabled:opacity-60"
-                      >
-                        <span className="material-symbols-outlined text-error text-[20px]">delete</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </>

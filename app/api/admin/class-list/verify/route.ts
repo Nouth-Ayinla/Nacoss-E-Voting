@@ -30,6 +30,12 @@ export async function GET(req: NextRequest) {
       fullRoster = [];
     }
 
+    // Index roster by matric number for O(1) matching performance
+    const rosterMap = new Map<string, ClassRosterItem>();
+    for (const r of fullRoster) {
+      rosterMap.set(r.matricNumber.trim().toUpperCase(), r);
+    }
+
     // 3. Cross-reference and count registered voters per level
     let matchCount = 0;
     let mismatchCount = 0;
@@ -45,10 +51,8 @@ export async function GET(req: NextRequest) {
     };
 
     const items = voters.map((voter) => {
-      // Find level from the full roster
-      const rosterEntry = fullRoster.find(
-        (r) => r.matricNumber.trim().toUpperCase() === voter.matricNumber.trim().toUpperCase()
-      );
+      // Find level from the full roster Map in O(1)
+      const rosterEntry = rosterMap.get(voter.matricNumber.trim().toUpperCase());
       
       const level = rosterEntry ? rosterEntry.level : null;
       const target = level === 100 ? registeredByLevel[100]
@@ -66,7 +70,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Compute verification status against the relevant list
-      const result = compareWithClassList(voter.matricNumber, voter.name, fullRoster);
+      const result = compareWithClassList(voter.matricNumber, voter.name, rosterMap);
 
       if (result.status === "MATCH") matchCount++;
       else if (result.status === "MISMATCH") mismatchCount++;
@@ -105,5 +109,5 @@ export async function GET(req: NextRequest) {
       },
       verifications: filteredItems,
     });
-  });
+  }, { timeout: 30000 });
 }

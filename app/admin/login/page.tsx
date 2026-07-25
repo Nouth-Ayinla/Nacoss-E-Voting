@@ -45,9 +45,7 @@ export default function AdminLoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="font-headline-md text-headline-md font-bold text-charcoal-slate">
-            Admin Sign In
-          </h1>
+          <h1>ADMIN</h1>
           <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">NACOSS FUTA Chapter E-Voting Portal</p>
         </div>
 

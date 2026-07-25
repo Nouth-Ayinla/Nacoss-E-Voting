@@ -3,9 +3,18 @@ import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 import { candidateSchema, verifyBase64ImageMagic } from "@/lib/validation";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest) {
+  const admin = await verifyAdminSession();
+  console.log("GET /api/candidates - admin session verified:", !!admin);
+
   return withDbRequestContext({ role: "public" }, async (tx) => {
     const candidates = await tx.candidate.findMany({ orderBy: { position: "asc" } });
+
+    if (admin) {
+      return NextResponse.json(candidates);
+    }
 
     // Strip base64 image payloads from the public response — these can be up to
     // 3MB each and would be sent on every page load. Proper HTTPS URLs pass through.

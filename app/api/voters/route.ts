@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Fetch class roster safely (uses Prisma model or raw SQL fallback if Prisma Client generator was locked during dev server execution)
+    // Fetch class roster safely
     let roster: ClassRosterItem[] = [];
     try {
       if ((tx as any).classRoster) {
@@ -39,9 +39,15 @@ export async function GET(req: NextRequest) {
       roster = [];
     }
 
+    // Index roster by matric number for O(1) matching performance
+    const rosterMap = new Map<string, ClassRosterItem>();
+    for (const r of roster) {
+      rosterMap.set(r.matricNumber.trim().toUpperCase(), r);
+    }
+
     // Attach class list match status to each voter
     const votersWithClassListMatch = voters.map((voter) => {
-      const matchResult = compareWithClassList(voter.matricNumber, voter.name, roster);
+      const matchResult = compareWithClassList(voter.matricNumber, voter.name, rosterMap);
       return {
         ...voter,
         classListMatch: {
@@ -56,5 +62,5 @@ export async function GET(req: NextRequest) {
     const counts = await tx.voter.groupBy({ by: ["status"], _count: true });
 
     return NextResponse.json({ voters: votersWithClassListMatch, counts });
-  });
+  }, { timeout: 30000 });
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Candidate = { id: string; name: string; position: string; imageUrl: string | null; manifesto: string | null };
-type Stage = "loading" | "login" | "ballot" | "submitting" | "success";
+type Stage = "loading" | "login" | "ballot" | "submitting" | "success" | "inactive";
 
 export default function VotePage() {
   const [stage, setStage] = useState<Stage>("loading");
@@ -17,13 +18,32 @@ export default function VotePage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, string>>({}); // position -> candidateId | "abstain"
   const [receipt, setReceipt] = useState<string | null>(null);
+  const [electionState, setElectionState] = useState<"upcoming" | "ongoing" | "ended">("upcoming");
+  const [electionName, setElectionName] = useState("NACOSS FUTA Chapter Vote");
 
-  // On load: check if already authenticated
+  // On load: check if already authenticated and election state
   useEffect(() => {
     async function checkSession() {
-      const res = await fetch("/api/auth/session");
-      const data = await res.json();
-      setStage(data.authenticated ? "ballot" : "login");
+      try {
+        const [sessionRes, stateRes] = await Promise.all([
+          fetch("/api/auth/session"),
+          fetch("/api/election-state"),
+        ]);
+        const sessionData = await sessionRes.json();
+        const stateData = await stateRes.json();
+        
+        const state = stateData.state ?? "upcoming";
+        setElectionState(state);
+        if (stateData.electionName) setElectionName(stateData.electionName);
+
+        if (state !== "ongoing") {
+          setStage("inactive");
+        } else {
+          setStage(sessionData.authenticated ? "ballot" : "login");
+        }
+      } catch {
+        setStage("inactive");
+      }
     }
     checkSession();
   }, []);
@@ -100,13 +120,52 @@ export default function VotePage() {
     );
   }
 
+  if (stage === "inactive") {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center bg-background px-margin-mobile text-center relative overflow-hidden bg-[radial-gradient(#eceef0_1px,transparent_1px)] [background-size:24px_24px]">
+        <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-primary-fixed/20 blur-[100px] rounded-full pointer-events-none -z-10" />
+        <div className="flex items-center gap-2 mb-stack-lg">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-8 h-8 object-contain" />
+          <h1 className="text-headline-md font-headline-md font-bold text-primary tracking-tight">{electionName}</h1>
+        </div>
+
+        <div className="w-full max-w-md bg-white border border-outline-variant p-8 rounded-2xl shadow-sm space-y-6">
+          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+            <span className="material-symbols-outlined text-3xl">
+              {electionState === "upcoming" ? "schedule" : "lock"}
+            </span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="font-headline-md text-headline-md text-charcoal-slate font-bold">
+              {electionState === "upcoming" ? "Voting Portal Upcoming" : "Voting Portal Closed"}
+            </h2>
+            <p className="text-body-sm text-on-surface-variant leading-relaxed">
+              {electionState === "upcoming"
+                ? "The departmental election is currently in the set up / registration phase. The voting portal will become active once deployed by the electoral committee."
+                : "This election has officially concluded. The ballot box is closed and no further votes can be cast."}
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center w-full h-11 bg-primary text-white font-semibold text-body-sm rounded-full shadow-sm hover:bg-primary/95 hover:shadow transition-all"
+            >
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (stage === "login") {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center bg-background px-margin-mobile">
         <div className="flex items-center gap-2 mb-stack-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-8 h-8 object-contain" />
-          <h1 className="text-headline-md font-headline-md font-bold text-primary tracking-tight">NACOSS FUTA Chapter Vote</h1>
+          <h1 className="text-headline-md font-headline-md font-bold text-primary tracking-tight">{electionName}</h1>
         </div>
 
         <div className="w-full max-w-md bg-white border border-outline-variant p-stack-lg rounded-lg shadow-sm">
@@ -201,7 +260,7 @@ export default function VotePage() {
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="NACOSS FUTA Chapter Logo" className="w-7 h-7 object-contain" />
-          <h1 className="text-headline-md font-headline-md font-bold text-primary">NACOSS FUTA Chapter Vote</h1>
+          <h1 className="text-headline-md font-headline-md font-bold text-primary">{electionName}</h1>
         </div>
       </header>
 

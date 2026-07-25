@@ -118,12 +118,12 @@ export function calculateNameSimilarity(name1: string, name2: string): number {
 export function compareWithClassList(
   submittedMatric: string,
   submittedName: string,
-  roster: ClassRosterItem[]
+  roster: ClassRosterItem[] | Map<string, ClassRosterItem>
 ): VerificationComparisonResult {
   const cleanSubmittedMatric = submittedMatric.trim().toUpperCase();
-  const matchedEntry = roster.find(
-    (item) => item.matricNumber.trim().toUpperCase() === cleanSubmittedMatric
-  );
+  const matchedEntry = roster instanceof Map
+    ? roster.get(cleanSubmittedMatric)
+    : roster.find((item) => item.matricNumber.trim().toUpperCase() === cleanSubmittedMatric);
 
   if (!matchedEntry) {
     return {

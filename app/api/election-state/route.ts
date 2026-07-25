@@ -6,11 +6,27 @@ import { electionStateSchema } from "@/lib/validation";
 export async function GET() {
   return withDbRequestContext({ role: "public" }, async (tx) => {
     const config = await tx.electionConfig.findUnique({ where: { id: 1 } });
-    return NextResponse.json({
+    const responseData: any = {
       state: config?.state ?? "upcoming",
       startTime: config?.startTime ?? null,
       endTime: config?.endTime ?? null,
-    });
+      resultsPublished: config?.resultsPublished ?? false,
+      electionName: config?.electionName ?? "NACOSS FUTA CHAPTER 2026 ELECTIONS",
+    };
+
+    // If an admin requests this state, append administrative statistics
+    const admin = await verifyAdminSession();
+    if (admin) {
+      responseData.totalVotesCast = await tx.voteReceipt.count();
+      responseData.totalVerifiedVoters = await tx.voter.count({ where: { status: "verified" } });
+      responseData.totalCandidates = await tx.candidate.count();
+      responseData.candidates = await tx.candidate.findMany({
+        select: { id: true, name: true, position: true, imageUrl: true },
+        orderBy: { position: "asc" },
+      });
+    }
+
+    return NextResponse.json(responseData);
   });
 }
 
@@ -24,12 +40,14 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { state, startTime, endTime } = parsed.data;
+  const { state, startTime, endTime, resultsPublished, electionName } = parsed.data;
 
   const updateData: any = {};
   if (state !== undefined) updateData.state = state;
   if (startTime !== undefined) updateData.startTime = startTime ? new Date(startTime) : null;
   if (endTime !== undefined) updateData.endTime = endTime ? new Date(endTime) : null;
+  if (resultsPublished !== undefined) updateData.resultsPublished = resultsPublished;
+  if (electionName !== undefined) updateData.electionName = electionName;
 
   return withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
     const config = await tx.electionConfig.upsert({
@@ -42,7 +60,7 @@ export async function PATCH(req: NextRequest) {
       data: {
         adminId: admin.adminId,
         action: "election_config_change",
-        metadata: { state, startTime, endTime },
+        metadata: { state, startTime, endTime, resultsPublished, electionName },
       },
     });
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import IdUploadZone from "@/components/IdUploadZone";
@@ -29,6 +30,7 @@ export default function RegisterPage() {
   const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
 
   const [quota, setQuota] = useState<QuotaInfo | null>(null);
+  const [electionState, setElectionState] = useState<string>("upcoming");
 
   useEffect(() => {
     fetch("/api/voters/register")
@@ -39,6 +41,13 @@ export default function RegisterPage() {
       .catch(() => {
         // Fallback gracefully without logging raw exceptions
       });
+
+    fetch("/api/election-state")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.state) setElectionState(data.state);
+      })
+      .catch(() => {});
   }, []);
 
   function handleStepOneSubmit(e: React.FormEvent) {
@@ -147,6 +156,23 @@ export default function RegisterPage() {
               <div className="text-body-sm">
                 <strong className="font-semibold block mb-0.5">Daily Limit Reached (120/120)</strong>
                 Registration is temporarily capped to manage daily email allocations. The quota resets tomorrow at 00:00 AM.
+              </div>
+            </div>
+          )}
+
+          {/* Voting started banner */}
+          {electionState === "ongoing" && (
+            <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-6 py-4 flex items-start gap-3 text-emerald-800 dark:text-emerald-300">
+              <span className="material-symbols-outlined text-emerald-600 text-xl shrink-0 mt-0.5 animate-pulse">how_to_vote</span>
+              <div className="text-body-sm flex-grow">
+                <strong className="font-semibold block mb-0.5">Voting Has Started!</strong>
+                The voting portal is now open. If you have already registered and been verified, you can proceed directly to cast your vote.
+                <div className="mt-2">
+                  <Link href="/vote" className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline bg-white px-3 py-1 rounded-full border border-outline-variant shadow-xs">
+                    Go to Voting Page
+                    <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                  </Link>
+                </div>
               </div>
             </div>
           )}
