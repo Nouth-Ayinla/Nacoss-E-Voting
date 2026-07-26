@@ -36,8 +36,32 @@ export default function CandidateApplyPage() {
   const [hasAlreadySubmitted, setHasAlreadySubmitted] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("candidate_submitted") === "true") {
-      setHasAlreadySubmitted(true);
+    if (typeof window !== "undefined") {
+      const submitted = localStorage.getItem("candidate_submitted") === "true";
+      const submittedId = localStorage.getItem("candidate_submitted_id");
+
+      if (submitted) {
+        setHasAlreadySubmitted(true);
+
+        if (submittedId) {
+          fetch("/api/candidates")
+            .then((res) => {
+              if (res.ok) return res.json();
+              throw new Error("Failed to fetch candidates");
+            })
+            .then((candidates) => {
+              const exists = candidates.some((c: any) => c.id === submittedId);
+              if (!exists) {
+                localStorage.removeItem("candidate_submitted");
+                localStorage.removeItem("candidate_submitted_id");
+                setHasAlreadySubmitted(false);
+              }
+            })
+            .catch((err) => {
+              console.error("Failed to verify candidate submission status:", err);
+            });
+        }
+      }
     }
   }, []);
 
@@ -124,6 +148,9 @@ export default function CandidateApplyPage() {
         setError(data.error || "Failed to submit candidate profile.");
       } else {
         localStorage.setItem("candidate_submitted", "true");
+        if (data && data.id) {
+          localStorage.setItem("candidate_submitted_id", data.id);
+        }
         setSuccess(true);
         // Clear form
         setFullName("");

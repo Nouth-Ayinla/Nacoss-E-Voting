@@ -315,16 +315,16 @@ export default function CandidateManagementPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {list.map((candidate) => (
                       <div
                         key={candidate.id}
                         className="bg-white border border-outline-variant rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4 relative overflow-hidden group"
                       >
                         <div className="space-y-4">
-                          {/* Candidate Identity Header (Centered & Enlarged Photo) */}
-                          <div className="flex flex-col items-center text-center gap-3">
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-surface-container-high border-2 border-primary/20 flex items-center justify-center text-primary font-bold flex-shrink-0 overflow-hidden shadow-md group-hover:border-primary/40 transition-colors">
+                          {/* Candidate Identity Header (Side-by-Side Layout) */}
+                          <div className="flex flex-row items-center gap-4 text-left">
+                            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-surface-container-high border-2 border-primary/20 flex items-center justify-center text-primary font-bold flex-shrink-0 overflow-hidden shadow-md group-hover:border-primary/40 transition-colors">
                               {candidate.imageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
@@ -333,7 +333,7 @@ export default function CandidateManagementPage() {
                                   className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
                                 />
                               ) : (
-                                <span className="text-xl font-extrabold">
+                                <span className="text-2xl font-extrabold">
                                   {candidate.name
                                     .split(" ")
                                     .slice(0, 2)
@@ -342,11 +342,11 @@ export default function CandidateManagementPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="w-full">
-                              <h4 className="font-bold text-body-lg text-charcoal-slate truncate">
+                            <div className="flex-grow min-w-0">
+                              <h4 className="font-bold text-body-lg text-charcoal-slate truncate" title={candidate.name}>
                                 {candidate.name}
                               </h4>
-                              <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1.5">
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                                 <span className="inline-block text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                   {candidate.position}
                                 </span>
