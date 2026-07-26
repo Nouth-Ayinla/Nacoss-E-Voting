@@ -49,9 +49,10 @@ export default function ResultsPage() {
   }
 
   return (
-    <>
+    <div className="flex-1 flex flex-col min-h-0">
       <AdminHeader title="Election Results" />
-      <div className="p-gutter max-w-container-max mx-auto w-full space-y-gutter">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-gutter max-w-container-max mx-auto w-full space-y-gutter">
         {isLoading || !data ? (
           <p className="text-on-surface-variant">Loading results...</p>
         ) : (
@@ -243,7 +244,8 @@ export default function ResultsPage() {
             )}
           </>
         )}
+        </div>
       </div>
-    </>
+    </div>
   );
 }

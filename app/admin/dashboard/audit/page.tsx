@@ -75,9 +75,10 @@ export default function AuditLogPage() {
   });
 
   return (
-    <>
+    <div className="flex-1 flex flex-col min-h-0">
       <AdminHeader title="System Audit Log" />
-      <div className="p-gutter max-w-container-max mx-auto w-full space-y-gutter">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-gutter max-w-container-max mx-auto w-full space-y-gutter">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-stack-md">
           <div>
             <h1 className="font-headline-lg text-headline-lg text-on-surface mb-stack-xs">System Audit Log</h1>
@@ -175,7 +176,8 @@ export default function AuditLogPage() {
             )}
           </div>
         </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 }

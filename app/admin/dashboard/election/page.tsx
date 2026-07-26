@@ -205,9 +205,10 @@ export default function ElectionSetupPage() {
   }
 
   return (
-    <>
+    <div className="flex-1 flex flex-col min-h-0">
       <AdminHeader title="Election Control Room" />
-      <div className="p-gutter max-w-container-max mx-auto w-full space-y-gutter">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-gutter max-w-container-max mx-auto w-full space-y-gutter">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-stack-md">
           <div>
             <h1 className="font-headline-lg text-headline-lg text-on-surface mb-stack-xs">Election Control Dashboard</h1>
@@ -484,7 +485,8 @@ export default function ElectionSetupPage() {
             </section>
           </div>
         </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 }

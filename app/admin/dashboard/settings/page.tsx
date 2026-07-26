@@ -118,9 +118,10 @@ export default function AdminSettingsPage() {
   const isSuperAdmin = role === "superadmin";
 
   return (
-    <>
+    <div className="flex-1 flex flex-col min-h-0">
       <AdminHeader title="Settings" />
-      <div className="p-gutter max-w-4xl w-full mx-auto space-y-gutter">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-gutter max-w-4xl w-full mx-auto space-y-gutter">
         {/* Profile Card */}
         <section className="bg-white border border-outline-variant rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -339,7 +340,8 @@ export default function AdminSettingsPage() {
             </table>
           </div>
         </section>
+        </div>
       </div>
-    </>
+    </div>
   );
 }

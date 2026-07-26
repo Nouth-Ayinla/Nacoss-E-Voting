@@ -367,10 +367,11 @@ export default function ClassListDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
+    <div className="h-full bg-surface flex flex-col overflow-hidden">
       <AdminHeader title="Class List Roster & Verification" />
 
-      <main className="flex-1 p-gutter max-w-7xl mx-auto w-full space-y-6">
+      <div className="flex-1 overflow-y-auto">
+        <main className="p-gutter max-w-7xl mx-auto w-full space-y-6">
         {/* Top Header & Alert Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -708,6 +709,7 @@ export default function ClassListDashboardPage() {
             )}
           </div>
       </main>
+      </div>
 
       {/* CSV Bulk Upload Modal */}
       {showUploadModal && (
