@@ -23,6 +23,39 @@ export default function ResultsPage() {
   }
 
   useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "F12") {
+        e.preventDefault();
+        return;
+      }
+      if (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C" || e.key === "i" || e.key === "j" || e.key === "c")) {
+        e.preventDefault();
+        return;
+      }
+      if (e.metaKey && e.altKey && (e.key === "I" || e.key === "J" || e.key === "C" || e.key === "i" || e.key === "j" || e.key === "c")) {
+        e.preventDefault();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "U" || e.key === "u")) {
+        e.preventDefault();
+        return;
+      }
+    };
+
+    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("contextmenu", handleContextMenu);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
     load();
     const interval = setInterval(load, 15000); // live-ish refresh
     return () => clearInterval(interval);
