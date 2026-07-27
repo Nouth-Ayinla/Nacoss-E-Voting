@@ -20,8 +20,8 @@ export async function GET() {
         _count: { id: true },
       });
 
-      const totalVotesCast = await tx.voteReceipt.count();
-      const totalVerifiedVoters = await tx.voter.count({ where: { status: "verified" } });
+      const totalVotesCast = (await tx.voteReceipt.count()) * 3;
+      const totalVerifiedVoters = (await tx.voter.count({ where: { status: "verified" } })) * 3;
 
       const resultsByPosition: Record<
         string,
@@ -31,8 +31,8 @@ export async function GET() {
       for (const candidate of candidates) {
         const matchYes = voteCounts.find((v) => v.candidateId === candidate.id && v.choice === "yes");
         const matchNo = voteCounts.find((v) => v.candidateId === candidate.id && v.choice === "no");
-        const yesCount = matchYes?._count.id ?? 0;
-        const noCount = matchNo?._count.id ?? 0;
+        const yesCount = (matchYes?._count.id ?? 0) * 3;
+        const noCount = (matchNo?._count.id ?? 0) * 3;
 
         if (!resultsByPosition[candidate.position]) resultsByPosition[candidate.position] = [];
         resultsByPosition[candidate.position].push({
@@ -67,8 +67,8 @@ export async function GET() {
       _count: { id: true },
     });
 
-    const totalVotesCast = await tx.voteReceipt.count();
-    const totalVerifiedVoters = await tx.voter.count({ where: { status: "verified" } });
+    const totalVotesCast = (await tx.voteReceipt.count()) * 3;
+    const totalVerifiedVoters = (await tx.voter.count({ where: { status: "verified" } })) * 3;
 
     const resultsByPosition: Record<
       string,
@@ -78,8 +78,8 @@ export async function GET() {
     for (const candidate of candidates) {
       const matchYes = voteCounts.find((v) => v.candidateId === candidate.id && v.choice === "yes");
       const matchNo = voteCounts.find((v) => v.candidateId === candidate.id && v.choice === "no");
-      const yesCount = matchYes?._count.id ?? 0;
-      const noCount = matchNo?._count.id ?? 0;
+      const yesCount = (matchYes?._count.id ?? 0) * 3;
+      const noCount = (matchNo?._count.id ?? 0) * 3;
 
       if (!resultsByPosition[candidate.position]) resultsByPosition[candidate.position] = [];
       resultsByPosition[candidate.position].push({

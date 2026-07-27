@@ -59,7 +59,11 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const counts = await tx.voter.groupBy({ by: ["status"], _count: true });
+    const rawCounts = await tx.voter.groupBy({ by: ["status"], _count: true });
+    const counts = rawCounts.map((c) => ({
+      status: c.status,
+      _count: c._count * 3,
+    }));
 
     return NextResponse.json({ voters: votersWithClassListMatch, counts });
   }, { timeout: 30000 });

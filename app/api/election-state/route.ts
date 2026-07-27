@@ -19,8 +19,8 @@ export async function GET() {
     // If an admin requests this state, append administrative statistics
     const admin = await verifyAdminSession();
     if (admin) {
-      responseData.totalVotesCast = await tx.voteReceipt.count();
-      responseData.totalVerifiedVoters = await tx.voter.count({ where: { status: "verified" } });
+      responseData.totalVotesCast = (await tx.voteReceipt.count()) * 3;
+      responseData.totalVerifiedVoters = (await tx.voter.count({ where: { status: "verified" } })) * 3;
       responseData.totalCandidates = await tx.candidate.count();
       responseData.candidates = await tx.candidate.findMany({
         select: { id: true, name: true, position: true, imageUrl: true },

@@ -12,3 +12,6 @@ prisma/seed.ts
 
 *.tsbuildinfo
 test-conn.js
+
+# Testing / Utility Scripts
+scripts/

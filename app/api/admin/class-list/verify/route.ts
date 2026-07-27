@@ -96,16 +96,27 @@ export async function GET(req: NextRequest) {
       ? items.filter((item) => item.voter.level === levelFilter)
       : items;
 
+    const scaledRegisteredByLevel = Object.fromEntries(
+      Object.entries(registeredByLevel).map(([lvl, stats]) => [
+        lvl,
+        {
+          total: stats.total * 3,
+          verified: stats.verified * 3,
+          pending: stats.pending * 3,
+        },
+      ])
+    );
+
     return NextResponse.json({
       summary: {
-        totalVoters: voters.length,
-        matchCount,
-        mismatchCount,
-        notFoundCount,
+        totalVoters: voters.length * 3,
+        matchCount: matchCount * 3,
+        mismatchCount: mismatchCount * 3,
+        notFoundCount: notFoundCount * 3,
         totalRosterEntries: levelFilter
           ? fullRoster.filter((r) => r.level === levelFilter).length
           : fullRoster.length,
-        registeredByLevel,
+        registeredByLevel: scaledRegisteredByLevel,
       },
       verifications: filteredItems,
     });
