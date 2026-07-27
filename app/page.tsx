@@ -168,23 +168,44 @@ export default function LandingPage() {
                   />
                 </div>
               ) : electionState !== "ended" ? (
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                  <Link
-                    href="/register"
-                    className="w-full sm:w-auto h-12 px-8 bg-primary text-white font-semibold text-body-sm rounded-full shadow-sm hover:bg-primary/95 hover:shadow transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-                  >
-                    Register to Vote
-                    <span className="material-symbols-outlined text-lg">arrow_forward</span>
-                  </Link>
-                  {electionState === "ongoing" && (
-                    <Link
-                      href="/vote"
-                      className="w-full sm:w-auto h-12 px-8 bg-white border border-outline-variant text-charcoal-slate font-semibold text-body-sm rounded-full shadow-sm hover:bg-surface-container-low transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-                    >
-                      Access Ballot
-                      <span className="material-symbols-outlined text-lg">how_to_vote</span>
-                    </Link>
+                <div className="space-y-6 w-full flex flex-col items-center">
+                  {electionState === "ongoing" && election?.endTime && (
+                    <div className="space-y-3 w-full animate-slide-in">
+                      <p className="font-semibold text-charcoal-slate text-body-sm text-center uppercase tracking-wider text-primary">
+                        Voting is live! Portal closes in:
+                      </p>
+                      <CountdownTimer
+                        targetDate={election.endTime}
+                        onComplete={() => {
+                          fetch("/api/election-state")
+                            .then((res) => (res.ok ? res.json() : null))
+                            .then((data) => {
+                              if (data) setElection(data);
+                            });
+                        }}
+                      />
+                    </div>
                   )}
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+                    {electionState === "upcoming" && (
+                      <Link
+                        href="/register"
+                        className="w-full sm:w-auto h-12 px-8 bg-primary text-white font-semibold text-body-sm rounded-full shadow-sm hover:bg-primary/95 hover:shadow transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                      >
+                        Register to Vote
+                        <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                      </Link>
+                    )}
+                    {electionState === "ongoing" && (
+                      <Link
+                        href="/vote"
+                        className="w-full sm:w-auto h-12 px-8 bg-primary text-white font-semibold text-body-sm rounded-full shadow-sm hover:bg-primary/95 hover:shadow transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                      >
+                        Access Ballot
+                        <span className="material-symbols-outlined text-lg">how_to_vote</span>
+                      </Link>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="px-6 py-3 rounded-xl bg-surface-container border border-outline-variant text-on-surface-variant font-medium text-body-sm">
