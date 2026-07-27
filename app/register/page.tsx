@@ -118,7 +118,7 @@ export default function RegisterPage() {
 
   const isScheduled = election?.startTime && new Date(election.startTime).getTime() > Date.now();
 
-  if (isScheduled || electionState === "ongoing" || electionState === "ended") {
+  if (electionState === "ended") {
     return (
       <>
         <SiteHeader />
@@ -132,11 +132,7 @@ export default function RegisterPage() {
                 Registration Closed
               </h1>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                {electionState === "ongoing"
-                  ? "The election is currently ongoing. Registration is closed."
-                  : electionState === "ended"
-                  ? "The election has ended. Registration is closed."
-                  : "Registration has closed because the election has been scheduled."}
+                The election has ended. Registration is closed.
               </p>
             </div>
 
@@ -156,10 +152,10 @@ export default function RegisterPage() {
 
             <div className="pt-4">
               <Link
-                href={electionState === "ongoing" ? "/vote" : "/"}
+                href="/"
                 className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-full font-bold text-xs hover:brightness-105 active:scale-95 transition-all shadow-sm"
               >
-                {electionState === "ongoing" ? "Go to Voting Page" : "Return to Homepage"}
+                Return to Homepage
                 <span className="material-symbols-outlined text-xs">arrow_forward</span>
               </Link>
             </div>

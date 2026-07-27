@@ -68,6 +68,10 @@ export default function ElectionSetupPage() {
   const [isSavingName, setIsSavingName] = useState(false);
   const [isAdvancingState, setIsAdvancingState] = useState(false);
   
+  const [isSavedName, setIsSavedName] = useState(false);
+  const [isSavedSchedule, setIsSavedSchedule] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [confirmingState, setConfirmingState] = useState(false);
 
@@ -77,9 +81,12 @@ export default function ElectionSetupPage() {
       if (res.ok) {
         const data: ElectionConfigResponse = await res.json();
         setConfig(data);
-        setElectionNameInput(data.electionName);
-        setStartTime(formatToLocalDateTime(data.startTime));
-        setEndTime(formatToLocalDateTime(data.endTime));
+        if (!hasLoaded) {
+          setElectionNameInput(data.electionName);
+          setStartTime(formatToLocalDateTime(data.startTime));
+          setEndTime(formatToLocalDateTime(data.endTime));
+          setHasLoaded(true);
+        }
       }
     } catch {
       setMessage({ type: "error", text: "Failed to load election configuration." });
@@ -89,10 +96,32 @@ export default function ElectionSetupPage() {
   }
 
   useEffect(() => {
-    loadConfig();
-    const interval = setInterval(loadConfig, 10000); // live updates for voter stats
+    // Initial fetch
+    fetch("/api/election-state")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: ElectionConfigResponse | null) => {
+        if (data) {
+          setConfig(data);
+          setElectionNameInput(data.electionName);
+          setStartTime(formatToLocalDateTime(data.startTime));
+          setEndTime(formatToLocalDateTime(data.endTime));
+          setHasLoaded(true);
+        }
+      })
+      .finally(() => setIsLoading(false));
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/election-state");
+        if (res.ok) {
+          const data: ElectionConfigResponse = await res.json();
+          setConfig(data);
+        }
+      } catch {}
+    }, 10000); // live updates for voter stats without resetting inputs
+
     return () => clearInterval(interval);
-  }, []);
+  }, [hasLoaded]);
 
   async function handleSaveElectionName(e: React.FormEvent) {
     e.preventDefault();
@@ -110,6 +139,8 @@ export default function ElectionSetupPage() {
 
       if (res.ok) {
         setMessage({ type: "success", text: "Election name updated successfully." });
+        setIsSavedName(true);
+        setTimeout(() => setIsSavedName(false), 3000);
         await loadConfig();
       } else {
         const data = await res.json();
@@ -139,6 +170,8 @@ export default function ElectionSetupPage() {
 
       if (res.ok) {
         setMessage({ type: "success", text: "Election schedule updated successfully." });
+        setIsSavedSchedule(true);
+        setTimeout(() => setIsSavedSchedule(false), 3000);
         await loadConfig();
       } else {
         const data = await res.json();
@@ -251,10 +284,14 @@ export default function ElectionSetupPage() {
                 />
                 <button
                   type="submit"
-                  disabled={isSavingName || electionNameInput.trim() === config.electionName}
-                  className="bg-primary hover:brightness-105 text-white px-6 py-2.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm disabled:opacity-40"
+                  disabled={isSavingName || (electionNameInput.trim() === config.electionName && !isSavedName)}
+                  className={`px-6 py-2.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm disabled:opacity-40 ${
+                    isSavedName
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-primary hover:brightness-105 text-white"
+                  }`}
                 >
-                  {isSavingName ? "..." : "Save"}
+                  {isSavingName ? "..." : isSavedName ? "Saved! ✓" : "Save"}
                 </button>
               </form>
             </section>
@@ -420,9 +457,13 @@ export default function ElectionSetupPage() {
                   <button
                     type="submit"
                     disabled={isSavingSchedule}
-                    className="bg-white border border-outline-variant hover:bg-surface-container-low text-charcoal-slate py-2.5 px-5 rounded-full font-semibold text-xs shadow-xs transition-all active:scale-[0.98]"
+                    className={`py-2.5 px-5 rounded-full font-semibold text-xs shadow-xs transition-all active:scale-[0.98] ${
+                      isSavedSchedule
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent"
+                        : "bg-white border border-outline-variant hover:bg-surface-container-low text-charcoal-slate"
+                    }`}
                   >
-                    {isSavingSchedule ? "Saving..." : "Save Election Timing"}
+                    {isSavingSchedule ? "Saving..." : isSavedSchedule ? "Saved! ✓" : "Save Election Timing"}
                   </button>
                 </div>
               </form>

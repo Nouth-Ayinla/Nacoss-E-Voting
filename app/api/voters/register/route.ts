@@ -41,14 +41,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Prevent registration if election is scheduled, ongoing, or ended
   await syncElectionState();
   const config = await withDbRequestContext({ role: "public" }, async (tx) =>
     tx.electionConfig.findUnique({ where: { id: 1 } })
   );
-  if (config && (config.startTime !== null || config.state !== "upcoming")) {
+
+  if (config && config.state === "ended") {
     return NextResponse.json(
-      { error: "Registration is closed. The election has been scheduled or is already underway." },
+      { error: "Registration is closed. The election has ended." },
       { status: 403 }
     );
   }
