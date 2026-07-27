@@ -3,15 +3,17 @@ import crypto from "crypto";
 import { withDbRequestContext } from "@/lib/db-context";
 import { verifyVoterSession, destroyVoterSession } from "@/lib/session";
 import { voteCastSchema } from "@/lib/validation";
+import { syncElectionState } from "@/lib/election";
 
-function computeVoteHash(prevHash: string, candidateId: string, position: string, castAt: Date): string {
+function computeVoteHash(prevHash: string, candidateId: string, position: string, choice: string, castAt: Date): string {
   return crypto
     .createHash("sha256")
-    .update(`${prevHash}:${candidateId}:${position}:${castAt.toISOString()}`)
+    .update(`${prevHash}:${candidateId}:${position}:${choice}:${castAt.toISOString()}`)
     .digest("hex");
 }
 
 export async function POST(req: NextRequest) {
+  await syncElectionState();
   const session = await verifyVoterSession();
   if (!session) {
     return NextResponse.json({ error: "Session expired. Please log in again." }, { status: 401 });
@@ -68,12 +70,13 @@ export async function POST(req: NextRequest) {
       // Insert anonymous ballots, chaining each one to the hash before it.
       for (const vote of votes) {
         const castAt = new Date();
-        const hash = computeVoteHash(runningHash, vote.candidateId, vote.position, castAt);
+        const hash = computeVoteHash(runningHash, vote.candidateId, vote.position, vote.choice, castAt);
 
         await tx.vote.create({
           data: {
             candidateId: vote.candidateId,
             position: vote.position,
+            choice: vote.choice,
             castAt,
             prevHash: runningHash,
             hash,

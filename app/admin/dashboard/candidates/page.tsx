@@ -219,12 +219,12 @@ export default function CandidateManagementPage() {
 
                   <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-surface-container-low p-4 rounded-xl border border-outline-variant">
                     {/* Photo Avatar Preview */}
-                    <div className="w-16 h-16 rounded-full bg-white border-2 border-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                    <div className="w-24 h-24 rounded-2xl bg-white border-2 border-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
                       {form.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="material-symbols-outlined text-outline text-2xl">person</span>
+                        <span className="material-symbols-outlined text-outline text-4xl">person</span>
                       )}
                     </div>
 

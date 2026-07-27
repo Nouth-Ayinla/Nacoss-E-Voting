@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { withDbRequestContext } from "@/lib/db-context";
 import { verifyAdminSession } from "@/lib/session";
 import { electionStateSchema } from "@/lib/validation";
+import { syncElectionState } from "@/lib/election";
 
 export async function GET() {
+  await syncElectionState();
   return withDbRequestContext({ role: "public" }, async (tx) => {
     const config = await tx.electionConfig.findUnique({ where: { id: 1 } });
     const responseData: any = {

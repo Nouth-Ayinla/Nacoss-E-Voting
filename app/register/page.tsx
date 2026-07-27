@@ -6,6 +6,7 @@ import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import IdUploadZone from "@/components/IdUploadZone";
+import CountdownTimer from "@/components/CountdownTimer";
 
 type Step = 1 | 2;
 
@@ -31,6 +32,7 @@ export default function RegisterPage() {
 
   const [quota, setQuota] = useState<QuotaInfo | null>(null);
   const [electionState, setElectionState] = useState<string>("upcoming");
+  const [election, setElection] = useState<any>(null);
 
   useEffect(() => {
     fetch("/api/voters/register")
@@ -45,7 +47,10 @@ export default function RegisterPage() {
     fetch("/api/election-state")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.state) setElectionState(data.state);
+        if (data) {
+          setElection(data);
+          if (data.state) setElectionState(data.state);
+        }
       })
       .catch(() => {});
   }, []);
@@ -109,6 +114,60 @@ export default function RegisterPage() {
       setSubmitError("Network error. Please try again.");
       setIsSubmitting(false);
     }
+  }
+
+  const isScheduled = election?.startTime && new Date(election.startTime).getTime() > Date.now();
+
+  if (isScheduled || electionState === "ongoing" || electionState === "ended") {
+    return (
+      <>
+        <SiteHeader />
+        <main className="flex-grow flex items-center justify-center pt-24 pb-12 px-margin-mobile relative overflow-hidden">
+          <div className="w-full max-w-lg bg-surface-container-lowest border border-outline-variant rounded shadow-sm overflow-hidden p-8 text-center space-y-6">
+            <span className="material-symbols-outlined text-primary text-display-lg block mx-auto">
+              lock
+            </span>
+            <div className="space-y-2">
+              <h1 className="font-headline-md text-headline-md font-bold text-charcoal-slate">
+                Registration Closed
+              </h1>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                {electionState === "ongoing"
+                  ? "The election is currently ongoing. Registration is closed."
+                  : electionState === "ended"
+                  ? "The election has ended. Registration is closed."
+                  : "Registration has closed because the election has been scheduled."}
+              </p>
+            </div>
+
+            {isScheduled && (
+              <div className="space-y-3 pt-2">
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider animate-pulse">
+                  Voting starts in:
+                </p>
+                <CountdownTimer
+                  targetDate={election.startTime}
+                  onComplete={() => {
+                    router.push("/");
+                  }}
+                />
+              </div>
+            )}
+
+            <div className="pt-4">
+              <Link
+                href={electionState === "ongoing" ? "/vote" : "/"}
+                className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-full font-bold text-xs hover:brightness-105 active:scale-95 transition-all shadow-sm"
+              >
+                {electionState === "ongoing" ? "Go to Voting Page" : "Return to Homepage"}
+                <span className="material-symbols-outlined text-xs">arrow_forward</span>
+              </Link>
+            </div>
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    );
   }
 
   return (

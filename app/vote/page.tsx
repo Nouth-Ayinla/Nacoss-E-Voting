@@ -44,7 +44,7 @@ export default function VotePage() {
         ]);
         const sessionData = await sessionRes.json();
         const stateData = await stateRes.json();
-        
+
         const state = stateData.state ?? "upcoming";
         setElectionState(state);
         if (stateData.electionName) setElectionName(stateData.electionName);
@@ -89,12 +89,12 @@ export default function VotePage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matricNumber: matricNumber.trim(), pin: pin.trim() }),
+        body: JSON.stringify({ pin: pin.trim() }),
       });
       const data = await res.json();
       setIsSubmittingStep(false);
       if (!res.ok) {
-        setError(data.error ?? "Invalid Matric Number or PIN.");
+        setError(data.error ?? "Invalid Voting Code.");
         return;
       }
       setStage("ballot");
@@ -118,20 +118,50 @@ export default function VotePage() {
     setError(null);
   }
 
-  function selectCandidate(position: string, value: string) {
-    setSelections((prev) => ({ ...prev, [position]: value }));
+  function setCandidateChoice(candidateId: string, choice: "yes" | "no") {
+    const candidate = candidates.find((c) => c.id === candidateId);
+    if (!candidate) return;
+
+    setSelections((prev) => {
+      const newSelections = { ...prev };
+      if (choice === "yes") {
+        newSelections[candidateId] = "yes";
+        // Automatically set all other candidates in the same position to "no"
+        candidates
+          .filter((c) => c.position === candidate.position && c.id !== candidateId)
+          .forEach((c) => {
+            newSelections[c.id] = "no";
+          });
+      } else {
+        newSelections[candidateId] = "no";
+      }
+      return newSelections;
+    });
+  }
+
+  function selectCandidate(position: string, candidateId: string) {
+    setCandidateChoice(candidateId, "yes");
   }
 
   async function handleSubmitBallot() {
     setError(null);
-    const votes = Object.entries(selections)
-      .filter(([, candidateId]) => candidateId !== "abstain")
-      .map(([position, candidateId]) => ({ position, candidateId }));
 
-    if (votes.length === 0) {
-      setError("You must vote or abstain for at least one position before submitting.");
+    // Make sure all candidates have been given a choice (either 'yes' or 'no')
+    const incompletePosition = positions.find((pos) => {
+      const posCandidates = candidates.filter((c) => c.position === pos);
+      return !posCandidates.every((c) => selections[c.id] !== undefined);
+    });
+
+    if (incompletePosition) {
+      setError(`Please complete selections (Yes or No) for all candidates in the "${incompletePosition}" position before submitting.`);
       return;
     }
+
+    const votes = candidates.map((c) => ({
+      candidateId: c.id,
+      position: c.position,
+      choice: selections[c.id] || "no",
+    }));
 
     setStage("submitting");
     setShowMobileReview(false);
@@ -180,7 +210,7 @@ export default function VotePage() {
       <main className="min-h-screen flex flex-col items-center justify-center bg-surface relative overflow-hidden">
         {/* Glow Effects */}
         <div className="absolute top-[30%] left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-primary/10 blur-[80px] rounded-full pointer-events-none" />
-        
+
         <div className="flex flex-col items-center space-y-6 z-10">
           <div className="relative flex items-center justify-center">
             {/* Outer spinning ring */}
@@ -188,8 +218,8 @@ export default function VotePage() {
             <span className="material-symbols-outlined text-primary text-2xl absolute animate-pulse">lock</span>
           </div>
           <div className="text-center space-y-1">
-            <h3 className="font-semibold text-charcoal-slate text-body-lg">Initializing Secure Portal</h3>
-            <p className="text-xs text-on-surface-variant">Connecting to the tamper-proof ballot chain...</p>
+            <h3 className="font-semibold text-charcoal-slate text-body-lg">Initializing Voting Portal</h3>
+
           </div>
         </div>
       </main>
@@ -201,7 +231,7 @@ export default function VotePage() {
       <main className="min-h-screen flex flex-col bg-surface px-margin-mobile relative overflow-hidden bg-[radial-gradient(#eceef0_1px,transparent_1px)] [background-size:24px_24px]">
         {/* Glow backdrop */}
         <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[320px] sm:w-[500px] h-[320px] sm:h-[500px] bg-primary/10 blur-[100px] rounded-full pointer-events-none -z-10" />
-        
+
         <header className="w-full max-w-5xl mx-auto py-6 flex items-center justify-between border-b border-outline-variant/40">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -216,14 +246,13 @@ export default function VotePage() {
 
         <div className="flex-grow flex items-center justify-center py-12">
           <div className="w-full max-w-md bg-white border border-outline-variant/60 p-6 sm:p-8 rounded-2xl shadow-xl space-y-6">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-inner ${
-              electionState === "upcoming" ? "bg-amber-100 text-amber-600" : "bg-error-container text-error"
-            }`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-inner ${electionState === "upcoming" ? "bg-amber-100 text-amber-600" : "bg-error-container text-error"
+              }`}>
               <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                 {electionState === "upcoming" ? "schedule" : "lock"}
               </span>
             </div>
-            
+
             <div className="text-center space-y-3">
               <h2 className="font-headline-md text-headline-md text-charcoal-slate font-extrabold tracking-tight">
                 {electionState === "upcoming" ? "Voting Portal Upcoming" : "Voting Portal Closed"}
@@ -292,40 +321,21 @@ export default function VotePage() {
                 Voter Authentication
               </h2>
               <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed max-w-xs mx-auto">
-                Authenticate with your credentials to load your ballot sheet. Your ballot remains anonymous.
+                Enter the unique 6-digit access code sent to your email to load your ballot sheet. Your ballot remains anonymous.
               </p>
             </div>
-
+ 
             {error && (
               <div className="p-4 bg-error-container text-on-error-container border border-error/20 rounded-xl text-xs font-semibold flex items-start gap-2.5 animate-slide-in">
                 <span className="material-symbols-outlined text-base shrink-0">error</span>
                 <span>{error}</span>
               </div>
             )}
-
+ 
             <form className="space-y-4" onSubmit={handleLogin}>
               <div className="space-y-1">
-                <label className="font-bold text-[11px] text-on-surface-variant uppercase tracking-wider block" htmlFor="matricNumber">
-                  Matric Number
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined text-outline text-lg absolute left-3.5 top-1/2 -translate-y-1/2">
-                    badge
-                  </span>
-                  <input
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-outline-variant/80 rounded-xl font-technical-code uppercase text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-charcoal-slate placeholder:text-outline-variant"
-                    id="matricNumber"
-                    placeholder="CSC/20/0001"
-                    value={matricNumber}
-                    onChange={(e) => setMatricNumber(e.target.value.toUpperCase())}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
                 <label className="font-bold text-[11px] text-on-surface-variant uppercase tracking-wider block" htmlFor="pin">
-                  Voting PIN
+                  Voting Access Code
                 </label>
                 <div className="relative">
                   <span className="material-symbols-outlined text-outline text-lg absolute left-3.5 top-1/2 -translate-y-1/2">
@@ -345,7 +355,7 @@ export default function VotePage() {
                   />
                 </div>
               </div>
-
+ 
               <div className="pt-2">
                 <button
                   className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3.5 rounded-full shadow-lg active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2 text-xs"
@@ -366,13 +376,13 @@ export default function VotePage() {
                 </button>
               </div>
             </form>
-
+ 
             <div className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/40 flex items-start gap-3">
               <span className="material-symbols-outlined text-primary text-lg mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
                 security
               </span>
               <p className="text-[11px] text-on-surface-variant leading-normal font-medium">
-                PINs are issued during verification by the electoral committee. Your vote is encrypted and completely decoupled from your Matric Number.
+                Voting codes are issued privately to verified students via email. Your vote is recorded anonymously.
               </p>
             </div>
           </div>
@@ -406,7 +416,7 @@ export default function VotePage() {
               <span>Receipt Code</span>
               <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">VERIFIED</span>
             </div>
-            
+
             {receipt && (
               <div className="relative">
                 <p className="font-technical-code text-xs text-primary bg-white p-3 rounded-lg border border-outline-variant/40 break-all select-all font-semibold leading-relaxed">
@@ -518,9 +528,9 @@ export default function VotePage() {
           </div>
           {positions.map((pos, idx) => {
             const isCurrent = stepIndex === idx;
-            const selection = selections[pos];
-            const isCompleted = selection !== undefined;
-            const selectedCandidate = candidates.find((c) => c.id === selection);
+            const positionCandidates = candidates.filter((c) => c.position === pos);
+            const isCompleted = positionCandidates.length > 0 && positionCandidates.every((c) => selections[c.id] !== undefined);
+            const yesCandidate = positionCandidates.find((c) => selections[c.id] === "yes");
 
             return (
               <button
@@ -529,30 +539,28 @@ export default function VotePage() {
                   setError(null);
                   setStepIndex(idx);
                 }}
-                className={`w-full text-left flex items-center justify-between p-3 rounded-xl transition-all border ${
-                  isCurrent
+                className={`w-full text-left flex items-center justify-between p-3 rounded-xl transition-all border ${isCurrent
                     ? "bg-primary/5 border-primary/20 text-primary font-bold shadow-sm"
                     : isCompleted
-                    ? "bg-surface-container-low/50 border-transparent text-charcoal-slate hover:bg-surface-container-low"
-                    : "bg-transparent border-transparent text-on-surface-variant hover:bg-surface-container-low"
-                }`}
+                      ? "bg-surface-container-low/50 border-transparent text-charcoal-slate hover:bg-surface-container-low"
+                      : "bg-transparent border-transparent text-on-surface-variant hover:bg-surface-container-low"
+                  }`}
                 type="button"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className={`material-symbols-outlined text-base flex-shrink-0 ${
-                    isCurrent
+                  <span className={`material-symbols-outlined text-base flex-shrink-0 ${isCurrent
                       ? "text-primary"
                       : isCompleted
-                      ? "text-emerald-600 font-bold"
-                      : "text-outline-variant"
-                  }`}>
+                        ? "text-emerald-600 font-bold"
+                        : "text-outline-variant"
+                    }`}>
                     {isCompleted ? "check_circle" : "radio_button_unchecked"}
                   </span>
                   <div className="min-w-0">
                     <span className="block text-xs truncate font-semibold">{pos}</span>
                     {isCompleted && (
                       <span className="block text-[10px] text-on-surface-variant truncate font-normal">
-                        {selection === "abstain" ? "Abstained" : selectedCandidate?.name}
+                        {yesCandidate ? `Yes: ${yesCandidate.name}` : "No to all"}
                       </span>
                     )}
                   </div>
@@ -585,20 +593,7 @@ export default function VotePage() {
                 <span className="text-xs font-bold text-primary">
                   Step {stepIndex + 1} of {positions.length}
                 </span>
-                <div className="w-32 h-1.5 bg-surface-container rounded-full overflow-hidden mt-1 hidden sm:block">
-                  <div
-                    className="h-full bg-primary transition-all duration-500 rounded-full"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
               </div>
-            </div>
-            {/* Mobile Progress Bar (stretched) */}
-            <div className="w-full h-1 bg-surface-container overflow-hidden mt-4 absolute bottom-0 left-0 sm:hidden">
-              <div
-                className="h-full bg-primary transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-              />
             </div>
           </div>
 
@@ -614,27 +609,34 @@ export default function VotePage() {
             {/* Candidate Card Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {currentCandidates.map((candidate) => {
-                const isSelected = selections[currentPosition] === candidate.id;
+                const isYes = selections[candidate.id] === "yes";
+                const isNo = selections[candidate.id] === "no";
                 return (
                   <div
                     key={candidate.id}
-                    onClick={() => selectCandidate(currentPosition, candidate.id)}
-                    className={`relative p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between group shadow-sm bg-white ${
-                      isSelected
-                        ? "border-emerald-600 bg-emerald-50/20 ring-2 ring-emerald-600/10 shadow-emerald-50"
+                    className={`relative p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between group shadow-sm bg-white ${
+                      isYes
+                        ? "border-emerald-600 bg-emerald-50/10 ring-2 ring-emerald-600/10 shadow-emerald-50"
+                        : isNo
+                        ? "border-rose-600/30 bg-rose-50/5"
                         : "border-outline-variant/60 hover:border-primary/40 hover:shadow-md"
                     }`}
                   >
-                    {/* Corner Check Indicator */}
-                    {isSelected && (
+                    {/* Corner Check/Cancel Indicators */}
+                    {isYes && (
                       <span className="material-symbols-outlined text-emerald-600 absolute top-4 right-4 text-xl font-bold bg-white rounded-full">
                         check_circle
+                      </span>
+                    )}
+                    {isNo && (
+                      <span className="material-symbols-outlined text-rose-500 absolute top-4 right-4 text-xl font-bold bg-white rounded-full">
+                        cancel
                       </span>
                     )}
 
                     <div className="flex items-start gap-4">
                       {/* Photo / Avatar */}
-                      <div className="w-16 h-16 rounded-xl overflow-hidden border border-outline-variant/60 bg-surface-container flex-shrink-0 relative group-hover:scale-105 transition-transform">
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-primary/20 bg-surface-container flex-shrink-0 relative group-hover:scale-105 transition-transform shadow-md">
                         {candidate.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -642,10 +644,10 @@ export default function VotePage() {
                             alt={candidate.name}
                             loading="lazy"
                             decoding="async"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 text-primary font-black text-lg">
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 text-primary font-black text-2xl sm:text-3xl">
                             {getInitials(candidate.name)}
                           </div>
                         )}
@@ -668,7 +670,7 @@ export default function VotePage() {
                     </div>
 
                     {/* Actions Row */}
-                    <div className="mt-5 pt-3 border-t border-outline-variant/40 flex items-center justify-between">
+                    <div className="mt-5 pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-4">
                       {candidate.manifesto ? (
                         <button
                           type="button"
@@ -685,13 +687,38 @@ export default function VotePage() {
                         <div />
                       )}
 
-                      <span className={`text-[11px] font-bold px-3.5 py-1 rounded-full transition-all ${
-                        isSelected
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "bg-surface-container text-charcoal-slate group-hover:bg-primary group-hover:text-white"
-                      }`}>
-                        {isSelected ? "Selected" : "Select Candidate"}
-                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCandidateChoice(candidate.id, "yes");
+                          }}
+                          className={`px-4 py-2 rounded-full font-bold text-xs transition-all flex items-center gap-1 border active:scale-95 ${
+                            isYes
+                              ? "bg-emerald-600 border-emerald-600 text-white"
+                              : "bg-white border-outline-variant text-charcoal-slate hover:bg-emerald-50 hover:border-emerald-300"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">thumb_up</span>
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCandidateChoice(candidate.id, "no");
+                          }}
+                          className={`px-4 py-2 rounded-full font-bold text-xs transition-all flex items-center gap-1 border active:scale-95 ${
+                            isNo
+                              ? "bg-rose-600 border-rose-600 text-white"
+                              : "bg-white border-outline-variant text-charcoal-slate hover:bg-rose-50 hover:border-rose-300"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">thumb_down</span>
+                          No
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -700,28 +727,32 @@ export default function VotePage() {
 
             {/* Standardized Abstain Box */}
             <div
-              onClick={() => selectCandidate(currentPosition, "abstain")}
+              onClick={() => {
+                currentCandidates.forEach((c) => {
+                  setSelections((prev) => ({ ...prev, [c.id]: "no" }));
+                });
+              }}
               className={`p-4 rounded-xl border border-dashed text-left flex items-center justify-between cursor-pointer transition-all ${
-                selections[currentPosition] === "abstain"
+                currentCandidates.length > 0 && currentCandidates.every((c) => selections[c.id] === "no")
                   ? "border-emerald-600 bg-emerald-50/20 ring-2 ring-emerald-600/10 shadow-sm"
                   : "border-outline-variant/80 hover:border-primary/50 hover:bg-surface-container-low/30"
               }`}
             >
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full border flex items-center justify-center ${
-                  selections[currentPosition] === "abstain"
+                  currentCandidates.length > 0 && currentCandidates.every((c) => selections[c.id] === "no")
                     ? "bg-emerald-50 border-emerald-300 text-emerald-700"
                     : "bg-white border-outline-variant text-outline"
                 }`}>
                   <span className="material-symbols-outlined text-lg">block</span>
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-charcoal-slate">Abstain from Voting</h4>
-                  <p className="text-[11px] text-on-surface-variant mt-0.5">Cast a blank ballot for the {currentPosition} office</p>
+                  <h4 className="font-bold text-xs text-charcoal-slate">Vote No / Abstain from Position</h4>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">Vote "No" for all candidates in the {currentPosition} office</p>
                 </div>
               </div>
 
-              {selections[currentPosition] === "abstain" && (
+              {currentCandidates.length > 0 && currentCandidates.every((c) => selections[c.id] === "no") && (
                 <span className="material-symbols-outlined text-emerald-600 font-bold text-lg">check_circle</span>
               )}
             </div>
@@ -745,26 +776,25 @@ export default function VotePage() {
               <h3 className="font-extrabold text-[12px] text-charcoal-slate uppercase tracking-wider">Ballot Review</h3>
               <p className="text-[10px] text-outline mt-0.5">Summary of selections made so far.</p>
             </div>
-            
+
             <div className="h-px bg-outline-variant/30" />
 
             <div className="space-y-3 max-h-[calc(100vh-21rem)] overflow-y-auto pr-1">
               {positions.map((pos) => {
-                const selection = selections[pos];
-                const selectedCandidate = candidates.find((c) => c.id === selection);
+                const positionCandidates = candidates.filter((c) => c.position === pos);
+                const isCompleted = positionCandidates.length > 0 && positionCandidates.every((c) => selections[c.id] !== undefined);
+                const yesCandidate = positionCandidates.find((c) => selections[c.id] === "yes");
 
                 return (
                   <div key={pos} className="space-y-1">
                     <span className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{pos}</span>
-                    {selection ? (
+                    {isCompleted ? (
                       <div className="flex items-center justify-between bg-surface-container-low p-2 rounded-lg border border-outline-variant/30">
                         <span className="text-xs font-bold text-charcoal-slate truncate max-w-[150px]">
-                          {selection === "abstain" ? "Abstained" : selectedCandidate?.name}
+                          {yesCandidate ? `Yes: ${yesCandidate.name}` : "No to all"}
                         </span>
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                          selection === "abstain" ? "bg-outline-variant/30 text-on-surface-variant" : "bg-emerald-100 text-emerald-800"
-                        }`}>
-                          {selection === "abstain" ? "Abstain" : "Filled"}
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${yesCandidate ? "bg-emerald-100 text-emerald-800" : "bg-outline-variant/30 text-on-surface-variant"}`}>
+                          {yesCandidate ? "Yes" : "No"}
                         </span>
                       </div>
                     ) : (
@@ -817,7 +847,7 @@ export default function VotePage() {
             <span className="material-symbols-outlined text-base">arrow_back</span>
             Back
           </button>
-          
+
           {isLastStep ? (
             <button
               type="button"
@@ -847,12 +877,12 @@ export default function VotePage() {
             {/* Modal Header */}
             <div className="p-5 border-b border-outline-variant/40 flex items-center justify-between bg-surface-container-low">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg overflow-hidden border border-outline-variant/60 bg-surface flex-shrink-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-primary/20 bg-surface flex-shrink-0 shadow-md">
                   {viewingCandidate.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={viewingCandidate.imageUrl} alt={viewingCandidate.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold text-sm">
+                    <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-black text-xl sm:text-2xl">
                       {getInitials(viewingCandidate.name)}
                     </div>
                   )}
@@ -926,26 +956,24 @@ export default function VotePage() {
             {/* Drawer Contents */}
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
               {positions.map((pos) => {
-                const selection = selections[pos];
-                const selectedCandidate = candidates.find((c) => c.id === selection);
+                const positionCandidates = candidates.filter((c) => c.position === pos);
+                const isCompleted = positionCandidates.length > 0 && positionCandidates.every((c) => selections[c.id] !== undefined);
+                const yesCandidate = positionCandidates.find((c) => selections[c.id] === "yes");
 
                 return (
                   <div key={pos} className="flex items-center justify-between p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
                     <div className="min-w-0 pr-4">
                       <span className="block text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">{pos}</span>
                       <span className="block text-xs font-black text-charcoal-slate truncate mt-0.5">
-                        {selection ? (selection === "abstain" ? "Abstained" : selectedCandidate?.name) : "No Selection"}
+                        {isCompleted ? (yesCandidate ? `Yes: ${yesCandidate.name}` : "No to all") : "No Selection"}
                       </span>
                     </div>
 
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                      selection === "abstain"
-                        ? "bg-outline-variant/40 text-on-surface-variant"
-                        : selection
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${isCompleted
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-error-container text-error"
-                    }`}>
-                      {selection === "abstain" ? "Abstain" : selection ? "Filled" : "Required"}
+                      }`}>
+                      {isCompleted ? "Filled" : "Required"}
                     </span>
                   </div>
                 );

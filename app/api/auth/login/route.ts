@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { withDbRequestContext } from "@/lib/db-context";
 import { createVoterSession } from "@/lib/session";
 import { voterLoginSchema } from "@/lib/validation";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { syncElectionState } from "@/lib/election";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -21,63 +23,85 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  // Per-matric rate limit: caps distributed attacks targeting one specific voter
-  // across many IP addresses. 10 attempts per 15 minutes per matric number.
-  const matricRateCheck = await checkRateLimit(`voter-login-matric:${parsed.data.matricNumber}`, 10, 15 * 60 * 1000);
-  if (!matricRateCheck.success) {
+  const { pin } = parsed.data;
+
+  // Rate limit per PIN to prevent brute force attacks on specific codes
+  const pinRateCheck = await checkRateLimit(`voter-login-pin:${pin}`, 5, 15 * 60 * 1000);
+  if (!pinRateCheck.success) {
     return NextResponse.json(
-      { error: `Too many login attempts for this account. Please try again in ${matricRateCheck.retryAfterSeconds} seconds.` },
+      { error: "Too many login attempts with this code. Please try again in 15 minutes." },
       { status: 429 }
     );
   }
 
-  const { matricNumber, pin } = parsed.data;
+  await syncElectionState();
 
-  return withDbRequestContext({ role: "public" }, async (tx) => {
-    // Verify election state is ongoing
-    const config = await tx.electionConfig.findUnique({ where: { id: 1 } });
-    const electionState = config?.state ?? "upcoming";
-    if (electionState !== "ongoing") {
-      return NextResponse.json(
-        { error: `Voting is currently unavailable (${electionState} phase).` },
-        { status: 403 }
-      );
-    }
+  const config = await withDbRequestContext({ role: "public" }, async (tx) => {
+    return tx.electionConfig.findUnique({ where: { id: 1 } });
+  });
+  const electionState = config?.state ?? "upcoming";
+  if (electionState !== "ongoing") {
+    return NextResponse.json(
+      { error: `Voting is currently unavailable (${electionState} phase).` },
+      { status: 403 }
+    );
+  }
 
-    const voter = await tx.voter.findUnique({
-      where: { matricNumber },
+  const hashedPin = crypto.createHash("sha256").update(pin).digest("hex");
+  let voter = await withDbRequestContext({ role: "public" }, async (tx) => {
+    return tx.voter.findFirst({
+      where: { pinHash: hashedPin },
+    });
+  });
+
+  if (!voter) {
+    // Fallback: Check if it matches any legacy bcrypt PINs of verified, eligible voters
+    const verifiedVoters = await withDbRequestContext({ role: "public" }, async (tx) => {
+      return tx.voter.findMany({
+        where: { status: "verified", hasVoted: false },
+      });
     });
 
-    const invalidResponse = NextResponse.json(
-      { error: "Invalid matric number or PIN." },
-      { status: 401 }
+    for (const candidateVoter of verifiedVoters) {
+      if (candidateVoter.pinHash && (candidateVoter.pinHash.startsWith("$2a$") || candidateVoter.pinHash.startsWith("$2b$"))) {
+        const pinMatches = await bcrypt.compare(pin, candidateVoter.pinHash);
+        if (pinMatches) {
+          voter = candidateVoter;
+          // Upgrade this voter's pinHash to SHA-256 for future requests
+          await withDbRequestContext({ role: "admin" }, async (tx) => {
+            await tx.voter.update({
+              where: { matricNumber: candidateVoter.matricNumber },
+              data: { pinHash: hashedPin },
+            });
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  const invalidResponse = NextResponse.json(
+    { error: "Invalid voting code." },
+    { status: 401 }
+  );
+
+  if (!voter) return invalidResponse;
+
+  if (voter.status !== "verified") {
+    return NextResponse.json(
+      { error: "Your voter registration is pending approval or has been rejected." },
+      { status: 403 }
     );
+  }
 
-    if (!voter) return invalidResponse;
+  if (voter.hasVoted) {
+    return NextResponse.json(
+      { error: "You have already cast your ballot in this election." },
+      { status: 403 }
+    );
+  }
 
-    if (voter.status !== "verified") {
-      return NextResponse.json(
-        { error: "Your voter registration is pending approval or has been rejected." },
-        { status: 403 }
-      );
-    }
+  await createVoterSession(voter.matricNumber);
 
-    if (voter.hasVoted) {
-      return NextResponse.json(
-        { error: "You have already cast your ballot in this election." },
-        { status: 403 }
-      );
-    }
-
-    if (!voter.pinHash) {
-      return invalidResponse;
-    }
-
-    const pinMatches = await bcrypt.compare(pin, voter.pinHash);
-    if (!pinMatches) return invalidResponse;
-
-    await createVoterSession(voter.matricNumber);
-
-    return NextResponse.json({ message: "Authenticated." });
-  });
+  return NextResponse.json({ message: "Authenticated." });
 }

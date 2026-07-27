@@ -12,18 +12,7 @@ export async function GET(req: NextRequest) {
   return withDbRequestContext({ role: "public" }, async (tx) => {
     const candidates = await tx.candidate.findMany({ orderBy: { position: "asc" } });
 
-    if (admin) {
-      return NextResponse.json(candidates);
-    }
-
-    // Strip base64 image payloads from the public response — these can be up to
-    // 3MB each and would be sent on every page load. Proper HTTPS URLs pass through.
-    const sanitised = candidates.map((c) => ({
-      ...c,
-      imageUrl: c.imageUrl?.startsWith("data:") ? null : (c.imageUrl ?? null),
-    }));
-
-    return NextResponse.json(sanitised);
+    return NextResponse.json(candidates);
   });
 }
 

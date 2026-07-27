@@ -293,12 +293,12 @@ export default function CandidateApplyPage() {
 
                       <div className="flex flex-col sm:flex-row gap-5 items-center text-center sm:text-left bg-surface-container-low p-5 rounded-xl border border-outline-variant">
                         {/* Picture Preview */}
-                        <div className="w-20 h-20 rounded-full bg-white border-2 border-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-inner">
+                        <div className="w-24 h-24 rounded-2xl bg-white border-2 border-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
                           {imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={imageUrl} alt="Candidate Profile Preview" className="w-full h-full object-cover" />
                           ) : (
-                            <span className="material-symbols-outlined text-outline text-3xl">account_circle</span>
+                            <span className="material-symbols-outlined text-outline text-4xl">account_circle</span>
                           )}
                         </div>
 

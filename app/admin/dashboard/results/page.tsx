@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 
 type ResultsResponse = {
-  resultsByPosition: Record<string, { candidateId: string; name: string; imageUrl: string | null; votes: number }[]>;
+  resultsByPosition: Record<string, { candidateId: string; name: string; imageUrl: string | null; yesVotes: number; noVotes: number; votes: number }[]>;
   totalVotesCast: number;
   totalVerifiedVoters: number;
   turnoutPercent: number;
@@ -167,7 +167,8 @@ export default function ResultsPage() {
 
                     <div className="p-6 space-y-6">
                       {candidates.map((candidate, i) => {
-                        const pct = totalVotes > 0 ? (candidate.votes / totalVotes) * 100 : 0;
+                        const totalCandidateVotes = candidate.yesVotes + candidate.noVotes;
+                        const approvalRate = totalCandidateVotes > 0 ? (candidate.yesVotes / totalCandidateVotes) * 100 : 0;
                         const isLeading = i === 0 && candidate.votes > 0;
 
                         return (
@@ -209,16 +210,18 @@ export default function ResultsPage() {
                               </div>
 
                               <div className="text-left sm:text-right bg-surface-container-low sm:bg-transparent p-2 sm:p-0 rounded-lg">
-                                <div className="flex items-baseline sm:justify-end gap-1.5">
-                                  <span className="text-display-sm font-extrabold text-primary">
-                                    {candidate.votes}
-                                  </span>
-                                  <span className="text-body-sm font-semibold text-on-surface-variant">
-                                    {candidate.votes === 1 ? "Vote" : "Votes"}
-                                  </span>
+                                <div className="flex items-center gap-4 sm:justify-end">
+                                  <div className="flex items-baseline gap-1 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-100">
+                                    <span className="text-xs font-bold text-emerald-800">Yes:</span>
+                                    <span className="text-headline-sm font-extrabold text-emerald-600">{candidate.yesVotes}</span>
+                                  </div>
+                                  <div className="flex items-baseline gap-1 bg-rose-50 px-2.5 py-1 rounded border border-rose-100">
+                                    <span className="text-xs font-bold text-rose-800">No:</span>
+                                    <span className="text-headline-sm font-extrabold text-rose-600">{candidate.noVotes}</span>
+                                  </div>
                                 </div>
-                                <span className="text-xs font-medium text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">
-                                  {pct.toFixed(1)}% of position votes
+                                <span className="text-xs font-medium text-on-surface-variant bg-surface-container px-2 py-0.5 rounded mt-2 inline-block">
+                                  {approvalRate.toFixed(1)}% Approval Rate
                                 </span>
                               </div>
                             </div>
@@ -230,7 +233,7 @@ export default function ResultsPage() {
                                   className={`h-full rounded-full transition-all duration-1000 ${
                                     isLeading ? "bg-emerald-500" : "bg-primary"
                                   }`}
-                                  style={{ width: `${pct}%` }}
+                                  style={{ width: `${approvalRate}%` }}
                                 />
                               </div>
                             </div>

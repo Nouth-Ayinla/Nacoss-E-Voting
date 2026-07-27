@@ -71,6 +71,7 @@ model Vote {
   id          String   @id @default(uuid())
   candidateId String   @map("candidate_id")
   position    String
+  choice      String   @default("yes")
   castAt      DateTime @map("cast_at")
   /// Hash-chain fields for tamper-evidence — every vote links to the hash
   /// of the one before it, so altering or deleting a past row breaks the

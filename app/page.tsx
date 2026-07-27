@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import CountdownTimer from "@/components/CountdownTimer";
 
 type Candidate = {
   id: string;
@@ -24,7 +25,7 @@ type ElectionConfig = {
 type LookupStatus = "pending" | "verified" | "rejected" | "not_found" | null;
 
 type ResultsData = {
-  resultsByPosition: Record<string, { candidateId: string; name: string; imageUrl: string | null; votes: number }[]>;
+  resultsByPosition: Record<string, { candidateId: string; name: string; imageUrl: string | null; yesVotes: number; noVotes: number; votes: number }[]>;
   totalVotesCast: number;
   totalVerifiedVoters: number;
   turnoutPercent: number;
@@ -108,6 +109,7 @@ export default function LandingPage() {
   }, {});
 
   const electionState = election?.state ?? "upcoming";
+  const isScheduled = election?.startTime && new Date(election.startTime).getTime() > Date.now();
 
   return (
     <>
@@ -120,18 +122,22 @@ export default function LandingPage() {
           {/* Hero Section */}
           <section className="text-center space-y-6 pt-6">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-outline-variant shadow-sm">
-              <span className={`w-2.5 h-2.5 rounded-full ${electionState === "ongoing"
-                ? "bg-emerald-500 animate-pulse"
-                : electionState === "upcoming"
-                  ? "bg-amber-500"
-                  : "bg-slate-400"
+              <span className={`w-2.5 h-2.5 rounded-full ${isScheduled
+                ? "bg-amber-500 animate-pulse"
+                : electionState === "ongoing"
+                  ? "bg-emerald-500 animate-pulse"
+                  : electionState === "upcoming"
+                    ? "bg-amber-500"
+                    : "bg-slate-400"
                 }`} />
               <span className="font-label-caps text-[11px] text-on-surface-variant uppercase tracking-wider">
-                {electionState === "ongoing"
-                  ? "Voting Portal Active"
-                  : electionState === "upcoming"
-                    ? "Registration Phase Open"
-                    : "Election Concluded"}
+                {isScheduled
+                  ? "Election Scheduled"
+                  : electionState === "ongoing"
+                    ? "Voting Portal Active"
+                    : electionState === "upcoming"
+                      ? "Registration Phase Open"
+                      : "Election Concluded"}
               </span>
             </div>
 
@@ -144,9 +150,25 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-              {electionState !== "ended" ? (
-                <>
+            <div className="flex flex-col items-center justify-center gap-4 pt-2">
+              {isScheduled ? (
+                <div className="space-y-4 w-full">
+                  <p className="font-semibold text-charcoal-slate text-body-md text-center">
+                    Registration has closed. Voting starts in:
+                  </p>
+                  <CountdownTimer
+                    targetDate={election.startTime!}
+                    onComplete={() => {
+                      fetch("/api/election-state")
+                        .then((res) => (res.ok ? res.json() : null))
+                        .then((data) => {
+                          if (data) setElection(data);
+                        });
+                    }}
+                  />
+                </div>
+              ) : electionState !== "ended" ? (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
                   <Link
                     href="/register"
                     className="w-full sm:w-auto h-12 px-8 bg-primary text-white font-semibold text-body-sm rounded-full shadow-sm hover:bg-primary/95 hover:shadow transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
@@ -163,7 +185,7 @@ export default function LandingPage() {
                       <span className="material-symbols-outlined text-lg">how_to_vote</span>
                     </Link>
                   )}
-                </>
+                </div>
               ) : (
                 <div className="px-6 py-3 rounded-xl bg-surface-container border border-outline-variant text-on-surface-variant font-medium text-body-sm">
                   This election has ended. Thank you for participating.
@@ -228,7 +250,8 @@ export default function LandingPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                         {list.map((candidate, idx) => {
                           const isWinner = idx === 0 && candidate.votes > 0;
-                          const pct = totalVotes > 0 ? (candidate.votes / totalVotes) * 100 : 0;
+                          const totalCandidateVotes = candidate.yesVotes + candidate.noVotes;
+                          const approvalRate = totalCandidateVotes > 0 ? (candidate.yesVotes / totalCandidateVotes) * 100 : 0;
                           return (
                             <div
                               key={candidate.candidateId}
@@ -237,7 +260,7 @@ export default function LandingPage() {
                               }`}
                             >
                               <div className="flex items-center gap-3.5">
-                                <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden text-sm shrink-0 shadow-inner">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden text-xl sm:text-2xl shrink-0 shadow-md transition-transform group-hover:scale-105">
                                   {candidate.imageUrl ? (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
@@ -249,7 +272,7 @@ export default function LandingPage() {
                                       .join("")
                                   )}
                                 </div>
-
+ 
                                 <div className="min-w-0 flex-grow">
                                   <div className="flex items-center gap-1.5">
                                     <h4 className="font-bold text-charcoal-slate text-body-md truncate">
@@ -262,26 +285,30 @@ export default function LandingPage() {
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex items-baseline gap-1 mt-0.5">
-                                    <span className="text-body-lg font-extrabold text-primary">{candidate.votes}</span>
-                                    <span className="text-xs font-semibold text-on-surface-variant">
-                                      {candidate.votes === 1 ? "Vote" : "Votes"}
-                                    </span>
+                                  <div className="flex items-center gap-4 mt-2">
+                                    <div className="flex items-baseline gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                      <span className="text-xs font-bold text-emerald-800">Yes:</span>
+                                      <span className="text-body-sm font-extrabold text-emerald-600">{candidate.yesVotes}</span>
+                                    </div>
+                                    <div className="flex items-baseline gap-1 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                                      <span className="text-xs font-bold text-rose-800">No:</span>
+                                      <span className="text-body-sm font-extrabold text-rose-600">{candidate.noVotes}</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-
+ 
                               <div className="mt-4 space-y-1">
                                 <div className="flex justify-between items-center text-[10px] font-semibold text-on-surface-variant">
-                                  <span>Vote Share</span>
-                                  <span>{pct.toFixed(1)}%</span>
+                                  <span>Approval Rate</span>
+                                  <span>{approvalRate.toFixed(1)}%</span>
                                 </div>
                                 <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden p-0.5 border border-outline-variant/30">
                                   <div
                                     className={`h-full rounded-full transition-all duration-1000 ${
                                       isWinner ? "bg-emerald-500" : "bg-primary"
                                     }`}
-                                    style={{ width: `${pct}%` }}
+                                    style={{ width: `${approvalRate}%` }}
                                   />
                                 </div>
                               </div>
@@ -480,7 +507,7 @@ export default function LandingPage() {
                           >
                             <div className="space-y-3">
                               <div className="flex items-center gap-3.5">
-                                <div className="w-14 h-14 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-primary/20 text-lg shadow-inner">
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-primary/20 text-2xl sm:text-3xl shadow-md">
                                   {candidate.imageUrl ? (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />

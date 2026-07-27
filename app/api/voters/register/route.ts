@@ -4,12 +4,14 @@ import { voterRegistrationSchema } from "@/lib/validation";
 import { uploadIdCard } from "@/lib/storage";
 import { sendRegistrationReceivedEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { syncElectionState } from "@/lib/election";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const DAILY_REGISTRATION_LIMIT = 120;
 
 export async function GET() {
+  await syncElectionState();
   return withDbRequestContext({ role: "voter-register" }, async (tx) => {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -36,6 +38,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: `Too many registration attempts. Please wait ${rateCheck.retryAfterSeconds} seconds.` },
       { status: 429 }
+    );
+  }
+
+  // Prevent registration if election is scheduled, ongoing, or ended
+  await syncElectionState();
+  const config = await withDbRequestContext({ role: "public" }, async (tx) =>
+    tx.electionConfig.findUnique({ where: { id: 1 } })
+  );
+  if (config && (config.startTime !== null || config.state !== "upcoming")) {
+    return NextResponse.json(
+      { error: "Registration is closed. The election has been scheduled or is already underway." },
+      { status: 403 }
     );
   }
 

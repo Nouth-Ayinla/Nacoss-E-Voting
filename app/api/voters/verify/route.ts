@@ -24,15 +24,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Rejection reason is required" }, { status: 400 });
   }
 
-  let pin: string | undefined;
-  let pinHash: string | null = null;
-  if (action === "approve") {
-    pin = crypto.randomInt(100000, 999999).toString();
-    pinHash = await bcrypt.hash(pin, 12);
-  }
-
   try {
     await withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
+      let pin: string | undefined;
+      let pinHash: string | null = null;
+      if (action === "approve") {
+        let isUnique = false;
+        while (!isUnique) {
+          pin = crypto.randomInt(100000, 999999).toString();
+          const hashed = crypto.createHash("sha256").update(pin).digest("hex");
+          const existing = await tx.voter.findFirst({ where: { pinHash: hashed } });
+          if (!existing) {
+            pinHash = hashed;
+            isUnique = true;
+          }
+        }
+      }
+
       const voter = await tx.voter.update({
         where: { matricNumber },
         data: {

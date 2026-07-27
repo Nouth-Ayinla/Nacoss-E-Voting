@@ -17,7 +17,6 @@ export const voterRegistrationSchema = z.object({
 });
 
 export const voterLoginSchema = z.object({
-  matricNumber: matricNumberSchema,
   pin: z.string().regex(/^\d{6}$/, "PIN must be 6 digits"),
 });
 
@@ -27,16 +26,21 @@ export const voteCastSchema = z.object({
       z.object({
         candidateId: z.string().uuid(),
         position: z.string().min(1).max(50),
+        choice: z.enum(["yes", "no"]),
       })
     )
     .min(1)
     .superRefine((votes, ctx) => {
       const positions = votes.map((v) => v.position);
       const uniquePositions = new Set(positions);
-      if (uniquePositions.size !== positions.length) {
+      // Removed unique check since each position can have multiple candidates voted Yes/No.
+      // Wait, we still want to make sure the same candidate is not voted multiple times.
+      const candidateIds = votes.map((v) => v.candidateId);
+      const uniqueCandidates = new Set(candidateIds);
+      if (uniqueCandidates.size !== candidateIds.length) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Each position may only appear once in a ballot submission.",
+          message: "Each candidate may only appear once in a ballot submission.",
         });
       }
     }),
