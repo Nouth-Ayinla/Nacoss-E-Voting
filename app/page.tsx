@@ -31,6 +31,14 @@ type ResultsData = {
   turnoutPercent: number;
 };
 
+function getCandidateImageUrl(url: string | null) {
+  if (!url) return "";
+  if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  return `/api/candidates/image?key=${url}`;
+}
+
 export default function LandingPage() {
   const [election, setElection] = useState<ElectionConfig | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -319,7 +327,7 @@ export default function LandingPage() {
                                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden text-xl sm:text-2xl shrink-0 shadow-md transition-transform group-hover:scale-105">
                                   {candidate.imageUrl ? (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                                    <img src={getCandidateImageUrl(candidate.imageUrl)} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                   ) : (
                                     candidate.name
                                       .split(" ")
@@ -565,7 +573,7 @@ export default function LandingPage() {
                                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-primary/20 text-2xl sm:text-3xl shadow-md">
                                   {candidate.imageUrl ? (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={candidate.imageUrl} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                                    <img src={getCandidateImageUrl(candidate.imageUrl)} alt={candidate.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                   ) : (
                                     candidate.name
                                       .split(" ")

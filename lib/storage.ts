@@ -45,3 +45,42 @@ export async function getSignedIdCardUrl(key: string, expiresInSeconds = 300): P
   const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
   return getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
 }
+
+/**
+ * Uploads a candidate's photo to the bucket under 'candidate-photos/'.
+ * Returns the storage key.
+ */
+export async function uploadCandidatePhoto(base64Data: string, candidateId: string): Promise<string> {
+  const matches = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+  if (!matches || matches.length !== 3) {
+    throw new Error("Invalid base64 image data");
+  }
+
+  const contentType = matches[1];
+  const buffer = Buffer.from(matches[2], "base64");
+  const extension = contentType.split("/")[1] || "png";
+  const key = `candidate-photos/${candidateId}.${extension}`;
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    })
+  );
+
+  return key;
+}
+
+/**
+ * Streams a file from R2 bucket.
+ */
+export async function getCandidatePhotoStream(key: string) {
+  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+  const response = await s3.send(command);
+  return {
+    body: response.Body,
+    contentType: response.ContentType,
+  };
+}

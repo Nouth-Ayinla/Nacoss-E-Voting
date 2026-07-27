@@ -36,6 +36,14 @@ type FormState = {
 
 const EMPTY_FORM: FormState = { name: "", position: "", level: "", imageUrl: "", manifesto: "" };
 
+function getCandidateImageUrl(url: string | null) {
+  if (!url) return "";
+  if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  return `/api/candidates/image?key=${url}`;
+}
+
 export default function CandidateManagementPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -222,7 +230,7 @@ export default function CandidateManagementPage() {
                     <div className="w-24 h-24 rounded-2xl bg-white border-2 border-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
                       {form.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                        <img src={getCandidateImageUrl(form.imageUrl)} alt="Preview" className="w-full h-full object-cover" />
                       ) : (
                         <span className="material-symbols-outlined text-outline text-4xl">person</span>
                       )}
@@ -328,7 +336,7 @@ export default function CandidateManagementPage() {
                               {candidate.imageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                  src={candidate.imageUrl}
+                                  src={getCandidateImageUrl(candidate.imageUrl)}
                                   alt={candidate.name}
                                   className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
                                 />

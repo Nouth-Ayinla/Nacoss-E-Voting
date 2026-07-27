@@ -37,12 +37,36 @@ export async function POST(req: NextRequest) {
   }
 
   return withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
-    const candidate = await tx.candidate.create({ data: parsed.data });
+    const tempUrl = parsed.data.imageUrl;
+    
+    // Create candidate first with placeholder image URL
+    const candidate = await tx.candidate.create({
+      data: {
+        ...parsed.data,
+        imageUrl: "PENDING_UPLOAD",
+      },
+    });
+
+    let finalImageUrl = tempUrl;
+    if (tempUrl && tempUrl.startsWith("data:")) {
+      try {
+        const { uploadCandidatePhoto } = await import("@/lib/storage");
+        finalImageUrl = await uploadCandidatePhoto(tempUrl, candidate.id);
+      } catch (err) {
+        console.error("Failed to upload candidate photo to storage:", err);
+      }
+    }
+
+    // Update with key or base64 fallback
+    const updatedCandidate = await tx.candidate.update({
+      where: { id: candidate.id },
+      data: { imageUrl: finalImageUrl },
+    });
 
     await tx.auditLog.create({
       data: { adminId: admin.adminId, action: "candidate_create", metadata: { candidateId: candidate.id } },
     });
 
-    return NextResponse.json(candidate, { status: 201 });
+    return NextResponse.json(updatedCandidate, { status: 201 });
   });
 }

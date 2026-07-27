@@ -14,6 +14,14 @@ type Candidate = {
 
 type Stage = "loading" | "login" | "ballot" | "submitting" | "success" | "inactive";
 
+function getCandidateImageUrl(url: string | null) {
+  if (!url) return "";
+  if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  return `/api/candidates/image?key=${url}`;
+}
+
 export default function VotePage() {
   const [stage, setStage] = useState<Stage>("loading");
   const [matricNumber, setMatricNumber] = useState("");
@@ -640,7 +648,7 @@ export default function VotePage() {
                         {candidate.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={candidate.imageUrl}
+                            src={getCandidateImageUrl(candidate.imageUrl)}
                             alt={candidate.name}
                             loading="lazy"
                             decoding="async"
@@ -880,7 +888,7 @@ export default function VotePage() {
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-primary/20 bg-surface flex-shrink-0 shadow-md">
                   {viewingCandidate.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={viewingCandidate.imageUrl} alt={viewingCandidate.name} className="w-full h-full object-cover" />
+                    <img src={getCandidateImageUrl(viewingCandidate.imageUrl)} alt={viewingCandidate.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-black text-xl sm:text-2xl">
                       {getInitials(viewingCandidate.name)}
