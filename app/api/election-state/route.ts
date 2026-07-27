@@ -51,8 +51,8 @@ export async function PATCH(req: NextRequest) {
   if (resultsPublished !== undefined) updateData.resultsPublished = resultsPublished;
   if (electionName !== undefined) updateData.electionName = electionName;
 
-  return withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
-    const config = await tx.electionConfig.upsert({
+  const config = await withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
+    const res = await tx.electionConfig.upsert({
       where: { id: 1 },
       update: updateData,
       create: { id: 1, ...updateData },
@@ -66,6 +66,10 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(config);
+    return res;
   });
+
+  // Trigger sync in case newly saved times should change the state
+  const synced = await syncElectionState();
+  return NextResponse.json(synced || config);
 }

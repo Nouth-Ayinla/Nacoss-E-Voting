@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 export default function RegisterSuccessPage() {
@@ -16,6 +16,18 @@ function RegisterSuccessContent() {
   const router = useRouter();
   const name = searchParams.get("name") ?? "";
   const matric = searchParams.get("matric") ?? "";
+  const [isOngoing, setIsOngoing] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/election-state")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.state === "ongoing") {
+          setIsOngoing(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <main className="font-body-md text-on-surface selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col items-center justify-center p-gutter relative overflow-hidden">
@@ -93,13 +105,32 @@ function RegisterSuccessContent() {
           </div>
 
           <div className="flex flex-col gap-stack-sm w-full">
-            <button
-              onClick={() => router.push("/")}
-              className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3.5 px-6 rounded-full transition-all duration-200 flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
-            >
-              Go to Home Page & Check Status
-              <span className="material-symbols-outlined text-lg">arrow_forward</span>
-            </button>
+            {isOngoing ? (
+              <>
+                <button
+                  onClick={() => router.push("/vote")}
+                  className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3.5 px-6 rounded-full transition-all duration-200 flex items-center justify-center gap-2 shadow-md active:scale-[0.98]"
+                >
+                  Proceed to Vote (Access Ballot)
+                  <span className="material-symbols-outlined text-lg">how_to_vote</span>
+                </button>
+                <button
+                  onClick={() => router.push("/")}
+                  className="w-full bg-white hover:bg-surface-container-low border border-outline-variant text-charcoal-slate font-bold py-3.5 px-6 rounded-full transition-all duration-200 flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+                >
+                  Go to Home Page & Check Status
+                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => router.push("/")}
+                className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3.5 px-6 rounded-full transition-all duration-200 flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+              >
+                Go to Home Page & Check Status
+                <span className="material-symbols-outlined text-lg">arrow_forward</span>
+              </button>
+            )}
             <a
               className="w-full text-center py-2 text-primary font-bold font-body-sm hover:underline flex items-center justify-center gap-1 mt-1"
               href="/guidelines"

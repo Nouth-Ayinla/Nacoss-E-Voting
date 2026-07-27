@@ -398,7 +398,7 @@ export default function ElectionSetupPage() {
             <section className="bg-white border border-outline-variant rounded-xl p-6 shadow-sm space-y-4">
               <h2 className="font-headline-md text-[18px] font-bold text-charcoal-slate flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">calendar_month</span>
-                Automatic Schedule Settings
+                Set Timing for Election
               </h2>
               <form className="space-y-4" onSubmit={handleSaveSchedule}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -435,7 +435,7 @@ export default function ElectionSetupPage() {
                     disabled={isSavingSchedule}
                     className="bg-white border border-outline-variant hover:bg-surface-container-low text-charcoal-slate py-2.5 px-5 rounded-full font-semibold text-xs shadow-xs transition-all active:scale-[0.98]"
                   >
-                    {isSavingSchedule ? "Saving..." : "Save Schedule Timing"}
+                    {isSavingSchedule ? "Saving..." : "Save Election Timing"}
                   </button>
                 </div>
               </form>
