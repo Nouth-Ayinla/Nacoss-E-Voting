@@ -18,8 +18,8 @@ const NEXT_STATE: Record<ElectionState, ElectionState | null> = {
 };
 
 const STATE_ACTION_LABEL: Record<ElectionState, string> = {
-  upcoming: "Deploy & Start Election",
-  ongoing: "Stop & Close Election",
+  upcoming: "Start Election",
+  ongoing: "End Election",
   ended: "Election Finished",
 };
 
@@ -159,10 +159,23 @@ export default function ElectionSetupPage() {
     setIsAdvancingState(true);
     setMessage(null);
     try {
+      const payload: any = { state: next };
+      const now = new Date();
+      if (next === "ongoing") {
+        payload.startTime = now.toISOString();
+        // If there is no end time set yet, or it is in the past, set a proper default end time (24 hours from now)
+        if (!config.endTime || new Date(config.endTime).getTime() <= now.getTime()) {
+          const defaultEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          payload.endTime = defaultEnd.toISOString();
+        }
+      } else if (next === "ended") {
+        payload.endTime = now.toISOString();
+      }
+
       const res = await fetch("/api/election-state", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: next }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -354,9 +367,9 @@ export default function ElectionSetupPage() {
                         <button
                           onClick={handleAdvanceState}
                           disabled={isAdvancingState}
-                          className="bg-primary text-white py-2 px-4 rounded-full text-xs font-bold hover:brightness-105 active:scale-95 transition-all shadow-sm"
+                          className="bg-primary text-white py-2.5 px-5 rounded-full text-xs font-bold hover:brightness-105 active:scale-95 transition-all shadow-sm"
                         >
-                          {isAdvancingState ? "..." : "Confirm Deployment"}
+                          {isAdvancingState ? "..." : config.state === "upcoming" ? "Confirm Start" : "Confirm End"}
                         </button>
                         <button
                           onClick={() => setConfirmingState(false)}

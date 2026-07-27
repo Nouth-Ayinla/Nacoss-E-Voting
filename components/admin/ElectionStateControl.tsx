@@ -39,14 +39,29 @@ export default function ElectionStateControl() {
     if (!next) return;
 
     setIsBusy(true);
+    const payload: any = { state: next };
+    const now = new Date();
+    if (next === "ongoing") {
+      payload.startTime = now.toISOString();
+      // Set a default end time of 24 hours from now if no end time exists or is in the past
+      const defaultEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      payload.endTime = defaultEnd.toISOString();
+    } else if (next === "ended") {
+      payload.endTime = now.toISOString();
+    }
+
     const res = await fetch("/api/election-state", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ state: next }),
+      body: JSON.stringify(payload),
     });
     if (res.ok) {
       const data = await res.json();
       setState(data.state);
+      // Reload page to refresh inputs if on the election dashboard page
+      if (typeof window !== "undefined" && window.location.pathname.endsWith("/election")) {
+        window.location.reload();
+      }
     }
     setIsBusy(false);
     setConfirming(false);
