@@ -55,7 +55,7 @@ export default function LandingPage() {
               .then((resultsData) => {
                 if (resultsData) setResults(resultsData);
               })
-              .catch(() => {});
+              .catch(() => { });
           }
         }
       })
@@ -121,11 +121,10 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto space-y-16">
           {/* Hero Section */}
           <section className="text-center space-y-6 pt-6">
-            <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-full border shadow-sm transition-all duration-300 ${
-              electionState === "ongoing"
+            <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-full border shadow-sm transition-all duration-300 ${electionState === "ongoing"
                 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-800 font-extrabold"
                 : "bg-white border-outline-variant text-on-surface-variant font-semibold"
-            }`}>
+              }`}>
               <span className={`w-2 h-2 rounded-full ${isScheduled
                 ? "bg-amber-500 animate-pulse"
                 : electionState === "ongoing"
@@ -138,7 +137,7 @@ export default function LandingPage() {
                 {isScheduled
                   ? "Election Scheduled"
                   : electionState === "ongoing"
-                    ? "Voting Live & Ongoing"
+                    ? ""
                     : electionState === "upcoming"
                       ? "Registration Phase Open"
                       : "Election Concluded"}
@@ -257,7 +256,7 @@ export default function LandingPage() {
             <section className="bg-white border-2 border-primary/20 rounded-2xl p-8 shadow-md space-y-8 animate-slide-in relative overflow-hidden">
               {/* Subtle background highlight for premium look */}
               <div className="absolute -top-16 -right-16 w-36 h-36 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-              
+
               <div className="text-center space-y-2">
                 <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-800 font-label-caps text-xs font-bold uppercase tracking-wider font-semibold">
                   <span className="material-symbols-outlined text-sm animate-pulse">emoji_events</span>
@@ -313,9 +312,8 @@ export default function LandingPage() {
                           return (
                             <div
                               key={candidate.candidateId}
-                              className={`flex flex-col justify-between p-4 border rounded-xl bg-white shadow-xs relative overflow-hidden transition-all ${
-                                isWinner ? "border-emerald-500 bg-emerald-50/10 shadow-sm" : "border-outline-variant/60"
-                              }`}
+                              className={`flex flex-col justify-between p-4 border rounded-xl bg-white shadow-xs relative overflow-hidden transition-all ${isWinner ? "border-emerald-500 bg-emerald-50/10 shadow-sm" : "border-outline-variant/60"
+                                }`}
                             >
                               <div className="flex items-center gap-3.5">
                                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden text-xl sm:text-2xl shrink-0 shadow-md transition-transform group-hover:scale-105">
@@ -330,7 +328,7 @@ export default function LandingPage() {
                                       .join("")
                                   )}
                                 </div>
- 
+
                                 <div className="min-w-0 flex-grow">
                                   <div className="flex items-center gap-1.5">
                                     <h4 className="font-bold text-charcoal-slate text-body-md truncate">
@@ -355,7 +353,7 @@ export default function LandingPage() {
                                   </div>
                                 </div>
                               </div>
- 
+
                               <div className="mt-4 space-y-1">
                                 <div className="flex justify-between items-center text-[10px] font-semibold text-on-surface-variant">
                                   <span>Approval Rate</span>
@@ -363,9 +361,8 @@ export default function LandingPage() {
                                 </div>
                                 <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden p-0.5 border border-outline-variant/30">
                                   <div
-                                    className={`h-full rounded-full transition-all duration-1000 ${
-                                      isWinner ? "bg-emerald-500" : "bg-primary"
-                                    }`}
+                                    className={`h-full rounded-full transition-all duration-1000 ${isWinner ? "bg-emerald-500" : "bg-primary"
+                                      }`}
                                     style={{ width: `${approvalRate}%` }}
                                   />
                                 </div>

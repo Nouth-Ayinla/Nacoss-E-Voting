@@ -44,14 +44,29 @@ export async function PATCH(req: NextRequest) {
 
   const { state, startTime, endTime, resultsPublished, electionName } = parsed.data;
 
-  const updateData: any = {};
-  if (state !== undefined) updateData.state = state;
-  if (startTime !== undefined) updateData.startTime = startTime ? new Date(startTime) : null;
-  if (endTime !== undefined) updateData.endTime = endTime ? new Date(endTime) : null;
-  if (resultsPublished !== undefined) updateData.resultsPublished = resultsPublished;
-  if (electionName !== undefined) updateData.electionName = electionName;
-
   const config = await withDbRequestContext({ role: "admin", adminId: admin.adminId }, async (tx) => {
+    const currentConfig = await tx.electionConfig.findUnique({ where: { id: 1 } });
+
+    const updateData: any = {};
+    if (state !== undefined) updateData.state = state;
+    if (startTime !== undefined) updateData.startTime = startTime ? new Date(startTime) : null;
+    if (endTime !== undefined) updateData.endTime = endTime ? new Date(endTime) : null;
+    if (resultsPublished !== undefined) updateData.resultsPublished = resultsPublished;
+    if (electionName !== undefined) updateData.electionName = electionName;
+
+    // Default timings if transitioning to ongoing and not already set
+    if (state === "ongoing") {
+      if (startTime === undefined && !currentConfig?.startTime) {
+        updateData.startTime = new Date();
+      }
+      if (endTime === undefined) {
+        const existingEnd = currentConfig?.endTime;
+        if (!existingEnd || new Date(existingEnd).getTime() <= Date.now()) {
+          updateData.endTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        }
+      }
+    }
+
     const res = await tx.electionConfig.upsert({
       where: { id: 1 },
       update: updateData,

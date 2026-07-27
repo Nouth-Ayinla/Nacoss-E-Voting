@@ -159,23 +159,10 @@ export default function ElectionSetupPage() {
     setIsAdvancingState(true);
     setMessage(null);
     try {
-      const payload: any = { state: next };
-      const now = new Date();
-      if (next === "ongoing") {
-        payload.startTime = now.toISOString();
-        // If there is no end time set yet, or it is in the past, set a proper default end time (24 hours from now)
-        if (!config.endTime || new Date(config.endTime).getTime() <= now.getTime()) {
-          const defaultEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-          payload.endTime = defaultEnd.toISOString();
-        }
-      } else if (next === "ended") {
-        payload.endTime = now.toISOString();
-      }
-
       const res = await fetch("/api/election-state", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ state: next }),
       });
 
       if (res.ok) {
