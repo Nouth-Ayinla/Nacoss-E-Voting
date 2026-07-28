@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type ResultsResponse = {
   resultsByPosition: Record<string, { candidateId: string; name: string; imageUrl: string | null; yesVotes: number; noVotes: number; votes: number }[]>;
@@ -81,6 +83,169 @@ export default function ResultsPage() {
     }
   }
 
+  function exportToPDF() {
+    if (!data) return;
+
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // Color Palette
+    const primaryColor: [number, number, number] = [0, 76, 34]; // #004c22 (green)
+    const textColor: [number, number, number] = [30, 41, 59]; // slate-800
+    const darkGray: [number, number, number] = [100, 116, 139]; // slate-500
+
+    // Title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text("NACOSS E-Voting System", 14, 20);
+
+    // Subtitle
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.text("Official Election Results Report", 14, 27);
+
+    // Metadata line
+    doc.setFontSize(8);
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+    const dateStr = `Report Generated: ${new Date().toLocaleString()}`;
+    doc.text(dateStr, 14, 33);
+
+    // Horizontal line
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.setLineWidth(0.5);
+    doc.line(14, 37, 196, 37);
+
+    // Summary Section
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.text("ELECTION SUMMARY", 14, 45);
+
+    // Summary Table (Turnout, Total Votes, Verified Voters)
+    autoTable(doc, {
+      startY: 49,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Verified Voters", data.totalVerifiedVoters.toString()],
+        ["Total Votes Cast", data.totalVotesCast.toString()],
+        ["Turnout Percentage", `${data.turnoutPercent}%`],
+        ["Results Visibility State", data.resultsPublished ? "Published (Public)" : "Unpublished (Admin Only)"],
+      ],
+      theme: "striped",
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] as [number, number, number], fontStyle: "bold" },
+      styles: { fontSize: 9, cellPadding: 3 },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 60 },
+        1: { cellWidth: 120 },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 12;
+
+    // Section: Position Breakdown
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.text("RESULTS BY EXECUTIVE POST", 14, currentY);
+    currentY += 4;
+
+    // Loop through each position and output a table
+    Object.entries(data.resultsByPosition).forEach(([position, candidates]) => {
+      // Check if we need a page break before adding the table
+      const tableHeight = 20 + (candidates.length * 8);
+      if (currentY + tableHeight > 270) {
+        doc.addPage();
+        currentY = 20; // reset Y to top margin
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(position.toUpperCase(), 14, currentY);
+      currentY += 4;
+
+      const totalVotesForPos = candidates.reduce((sum, c) => sum + c.votes, 0);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+      doc.text(`Total Votes Cast for Position: ${totalVotesForPos}`, 14, currentY);
+      currentY += 4;
+
+      const tableBody = candidates.map((candidate, index) => {
+        const totalCandidateVotes = candidate.yesVotes + candidate.noVotes;
+        const approvalRate = totalCandidateVotes > 0 ? ((candidate.yesVotes / totalCandidateVotes) * 100).toFixed(1) : "0.0";
+        const isLeading = index === 0 && candidate.votes > 0;
+        const status = isLeading ? "Leading / Winner" : (candidate.votes > 0 ? "Contesting" : "No votes");
+
+        return [
+          (index + 1).toString(),
+          candidate.name,
+          candidate.yesVotes.toString(),
+          candidate.noVotes.toString(),
+          `${approvalRate}%`,
+          status,
+        ];
+      });
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [["Rank", "Candidate Name", "Yes Votes", "No Votes", "Approval Rate", "Status"]],
+        body: tableBody,
+        theme: "striped",
+        headStyles: { fillColor: [71, 85, 105] as [number, number, number], textColor: [255, 255, 255] as [number, number, number] }, // slate-600
+        styles: { fontSize: 8.5, cellPadding: 3 },
+        columnStyles: {
+          0: { cellWidth: 15, halign: "center" },
+          1: { fontStyle: "bold" },
+          2: { halign: "right" },
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { fontStyle: "bold" },
+        },
+        margin: { left: 14, right: 14 },
+        didParseCell: (dataCell) => {
+          if (dataCell.column.index === 5 && dataCell.cell.text[0] === "Leading / Winner") {
+            dataCell.cell.styles.textColor = [16, 185, 129] as [number, number, number]; // emerald-500
+          }
+        },
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 8;
+    });
+
+    // Add page numbers footer to all pages
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+
+      // Footer text line
+      doc.text(
+        `Page ${i} of ${pageCount} | NACOSS E-Voting System Official Results Report`,
+        14,
+        287
+      );
+
+      // Right-aligned verification note
+      const secureText = "SECURE & VERIFIED BALLOT REPORT";
+      doc.text(
+        secureText,
+        196 - doc.getTextWidth(secureText),
+        287
+      );
+    }
+
+    doc.save(`Election_Results_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <AdminHeader title="Election Results" />
@@ -99,20 +264,31 @@ export default function ResultsPage() {
                     : "Results are hidden from the public. Click 'Publish' to show them on the landing page."}
                 </p>
               </div>
-              <button
-                onClick={handleTogglePublish}
-                disabled={isTogglingPublish}
-                className={`px-5 py-2.5 rounded-full font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 ${
-                  data.resultsPublished
-                    ? "bg-amber-600 text-white hover:bg-amber-700"
-                    : "bg-primary text-white hover:bg-primary/90"
-                }`}
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  {data.resultsPublished ? "visibility_off" : "publish"}
-                </span>
-                <span>{isTogglingPublish ? "Updating..." : data.resultsPublished ? "Unpublish Results" : "Publish Results"}</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={exportToPDF}
+                  className="px-5 py-2.5 rounded-full font-bold text-xs shadow-sm border border-emerald-600/30 text-emerald-800 bg-white hover:bg-emerald-50/30 transition-all flex items-center gap-1.5 active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">
+                    picture_as_pdf
+                  </span>
+                  <span>Export PDF</span>
+                </button>
+                <button
+                  onClick={handleTogglePublish}
+                  disabled={isTogglingPublish}
+                  className={`px-5 py-2.5 rounded-full font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 ${
+                    data.resultsPublished
+                      ? "bg-amber-600 text-white hover:bg-amber-700"
+                      : "bg-primary text-white hover:bg-primary/90"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {data.resultsPublished ? "visibility_off" : "publish"}
+                  </span>
+                  <span>{isTogglingPublish ? "Updating..." : data.resultsPublished ? "Unpublish Results" : "Publish Results"}</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter">
