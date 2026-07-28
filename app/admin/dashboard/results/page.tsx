@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const POSITION_ORDER = [
   "President",
@@ -97,8 +95,11 @@ export default function ResultsPage() {
     }
   }
 
-  function exportToPDF() {
+  async function exportToPDF() {
     if (!data) return;
+
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
 
     const doc = new jsPDF({
       orientation: "portrait",
@@ -111,38 +112,32 @@ export default function ResultsPage() {
     const textColor: [number, number, number] = [30, 41, 59]; // slate-800
     const darkGray: [number, number, number] = [100, 116, 139]; // slate-500
 
-    // Title
-    doc.setFont("helvetica", "bold");
+    // Title (Centered)
+    doc.setFont("times", "bold");
     doc.setFontSize(20);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text("NACOSS E-Voting System", 14, 20);
+    doc.text("NACOSS E-Voting System", 105, 20, { align: "center" });
 
-    // Subtitle
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    // Subtitle (Centered)
+    doc.setFont("times", "normal");
+    doc.setFontSize(12);
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text("Official Election Results Report", 14, 27);
-
-    // Metadata line
-    doc.setFontSize(8);
-    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-    const dateStr = `Report Generated: ${new Date().toLocaleString()}`;
-    doc.text(dateStr, 14, 33);
+    doc.text("Official Election Results Report", 105, 27, { align: "center" });
 
     // Horizontal line
     doc.setDrawColor(226, 232, 240); // slate-200
     doc.setLineWidth(0.5);
-    doc.line(14, 37, 196, 37);
+    doc.line(14, 32, 196, 32);
 
     // Summary Section
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFont("times", "bold");
+    doc.setFontSize(12);
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text("ELECTION SUMMARY", 14, 45);
+    doc.text("ELECTION SUMMARY", 14, 40);
 
-    // Summary Table (Turnout, Total Votes, Verified Voters)
+    // Summary Table (Turnout, Total Votes, Verified Voters) - Times 12pt
     autoTable(doc, {
-      startY: 49,
+      startY: 44,
       head: [["Metric", "Value"]],
       body: [
         ["Total Verified Voters", data.totalVerifiedVoters.toString()],
@@ -151,8 +146,8 @@ export default function ResultsPage() {
         ["Results Visibility State", data.resultsPublished ? "Published (Public)" : "Unpublished (Admin Only)"],
       ],
       theme: "striped",
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] as [number, number, number], fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] as [number, number, number], fontStyle: "bold", font: "times" },
+      styles: { font: "times", fontSize: 12, cellPadding: 3 },
       columnStyles: {
         0: { fontStyle: "bold", cellWidth: 60 },
         1: { cellWidth: 120 },
@@ -163,11 +158,11 @@ export default function ResultsPage() {
     let currentY = (doc as any).lastAutoTable.finalY + 12;
 
     // Section: Position Breakdown
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFont("times", "bold");
+    doc.setFontSize(12);
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
     doc.text("RESULTS BY EXECUTIVE POST", 14, currentY);
-    currentY += 4;
+    currentY += 5;
 
     // Loop through each position and output a table
     Object.entries(data.resultsByPosition)
@@ -181,24 +176,24 @@ export default function ResultsPage() {
       })
       .forEach(([position, candidates]) => {
         // Check if we need a page break before adding the table
-        const tableHeight = 20 + (candidates.length * 8);
+        const tableHeight = 25 + (candidates.length * 10);
         if (currentY + tableHeight > 270) {
           doc.addPage();
           currentY = 20; // reset Y to top margin
         }
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
+        doc.setFont("times", "bold");
+        doc.setFontSize(12);
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.text(position.toUpperCase(), 14, currentY);
         currentY += 4;
 
         const totalVotesForPos = candidates.reduce((sum, c) => sum + c.votes, 0);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
+        doc.setFont("times", "normal");
+        doc.setFontSize(10);
         doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
         doc.text(`Total Votes Cast for Position: ${totalVotesForPos}`, 14, currentY);
-        currentY += 4;
+        currentY += 5;
 
         const tableBody = candidates.map((candidate, index) => {
           const totalCandidateVotes = candidate.yesVotes + candidate.noVotes;
@@ -218,13 +213,13 @@ export default function ResultsPage() {
 
         autoTable(doc, {
           startY: currentY,
-          head: [["Rank", "Candidate Name", "Yes Votes", "No Votes", "Approval Rate", "Status"]],
+          head: [["Position", "Candidate Name", "Yes Votes", "No Votes", "Approval Rate", "Status"]],
           body: tableBody,
           theme: "striped",
-          headStyles: { fillColor: [71, 85, 105] as [number, number, number], textColor: [255, 255, 255] as [number, number, number] }, // slate-600
-          styles: { fontSize: 8.5, cellPadding: 3 },
+          headStyles: { fillColor: [71, 85, 105] as [number, number, number], textColor: [255, 255, 255] as [number, number, number], fontStyle: "bold", font: "times" }, // slate-600
+          styles: { font: "times", fontSize: 12, cellPadding: 3 },
           columnStyles: {
-            0: { cellWidth: 15, halign: "center" },
+            0: { cellWidth: 25, halign: "center" },
             1: { fontStyle: "bold" },
             2: { halign: "right" },
             3: { halign: "right" },
@@ -246,7 +241,7 @@ export default function ResultsPage() {
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFont("helvetica", "normal");
+      doc.setFont("times", "normal");
       doc.setFontSize(8);
       doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
 
