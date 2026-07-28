@@ -6,6 +6,20 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import CountdownTimer from "@/components/CountdownTimer";
 
+const POSITION_ORDER = [
+  "President",
+  "Vice President",
+  "General Secretary",
+  "Assistant General Secretary",
+  "Financial Secretary",
+  "Public Relation Officer",
+  "Treasurer",
+  "Welfare Director",
+  "Director of Sports",
+  "Director of Socials",
+  "Director of Software"
+];
+
 type Candidate = {
   id: string;
   name: string;
@@ -329,7 +343,16 @@ export default function LandingPage() {
 
               {/* Position Results breakdown */}
               <div className="space-y-8">
-                {Object.entries(results.resultsByPosition).map(([position, list]) => {
+                {Object.entries(results.resultsByPosition)
+                  .sort(([posA], [posB]) => {
+                    const idxA = POSITION_ORDER.indexOf(posA);
+                    const idxB = POSITION_ORDER.indexOf(posB);
+                    if (idxA === -1 && idxB === -1) return posA.localeCompare(posB);
+                    if (idxA === -1) return 1;
+                    if (idxB === -1) return -1;
+                    return idxA - idxB;
+                  })
+                  .map(([position, list]) => {
                   const totalVotes = list.reduce((sum, c) => sum + c.votes, 0);
                   return (
                     <div key={position} className="space-y-4 border border-outline-variant/60 p-6 rounded-xl bg-surface-container-low/20">

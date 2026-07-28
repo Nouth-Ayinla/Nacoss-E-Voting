@@ -5,6 +5,20 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+const POSITION_ORDER = [
+  "President",
+  "Vice President",
+  "General Secretary",
+  "Assistant General Secretary",
+  "Financial Secretary",
+  "Public Relation Officer",
+  "Treasurer",
+  "Welfare Director",
+  "Director of Sports",
+  "Director of Socials",
+  "Director of Software"
+];
+
 type ResultsResponse = {
   resultsByPosition: Record<string, { candidateId: string; name: string; imageUrl: string | null; yesVotes: number; noVotes: number; votes: number }[]>;
   totalVotesCast: number;
@@ -156,68 +170,77 @@ export default function ResultsPage() {
     currentY += 4;
 
     // Loop through each position and output a table
-    Object.entries(data.resultsByPosition).forEach(([position, candidates]) => {
-      // Check if we need a page break before adding the table
-      const tableHeight = 20 + (candidates.length * 8);
-      if (currentY + tableHeight > 270) {
-        doc.addPage();
-        currentY = 20; // reset Y to top margin
-      }
+    Object.entries(data.resultsByPosition)
+      .sort(([posA], [posB]) => {
+        const idxA = POSITION_ORDER.indexOf(posA);
+        const idxB = POSITION_ORDER.indexOf(posB);
+        if (idxA === -1 && idxB === -1) return posA.localeCompare(posB);
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
+      })
+      .forEach(([position, candidates]) => {
+        // Check if we need a page break before adding the table
+        const tableHeight = 20 + (candidates.length * 8);
+        if (currentY + tableHeight > 270) {
+          doc.addPage();
+          currentY = 20; // reset Y to top margin
+        }
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(position.toUpperCase(), 14, currentY);
-      currentY += 4;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(position.toUpperCase(), 14, currentY);
+        currentY += 4;
 
-      const totalVotesForPos = candidates.reduce((sum, c) => sum + c.votes, 0);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-      doc.text(`Total Votes Cast for Position: ${totalVotesForPos}`, 14, currentY);
-      currentY += 4;
+        const totalVotesForPos = candidates.reduce((sum, c) => sum + c.votes, 0);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+        doc.text(`Total Votes Cast for Position: ${totalVotesForPos}`, 14, currentY);
+        currentY += 4;
 
-      const tableBody = candidates.map((candidate, index) => {
-        const totalCandidateVotes = candidate.yesVotes + candidate.noVotes;
-        const approvalRate = totalCandidateVotes > 0 ? ((candidate.yesVotes / totalCandidateVotes) * 100).toFixed(1) : "0.0";
-        const isLeading = index === 0 && candidate.votes > 0;
-        const status = isLeading ? "Leading / Winner" : (candidate.votes > 0 ? "Contesting" : "No votes");
+        const tableBody = candidates.map((candidate, index) => {
+          const totalCandidateVotes = candidate.yesVotes + candidate.noVotes;
+          const approvalRate = totalCandidateVotes > 0 ? ((candidate.yesVotes / totalCandidateVotes) * 100).toFixed(1) : "0.0";
+          const isLeading = index === 0 && candidate.votes > 0;
+          const status = isLeading ? "Elected" : (candidate.votes > 0 ? "Contesting" : "No votes");
 
-        return [
-          (index + 1).toString(),
-          candidate.name,
-          candidate.yesVotes.toString(),
-          candidate.noVotes.toString(),
-          `${approvalRate}%`,
-          status,
-        ];
+          return [
+            (index + 1).toString(),
+            candidate.name,
+            candidate.yesVotes.toString(),
+            candidate.noVotes.toString(),
+            `${approvalRate}%`,
+            status,
+          ];
+        });
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [["Rank", "Candidate Name", "Yes Votes", "No Votes", "Approval Rate", "Status"]],
+          body: tableBody,
+          theme: "striped",
+          headStyles: { fillColor: [71, 85, 105] as [number, number, number], textColor: [255, 255, 255] as [number, number, number] }, // slate-600
+          styles: { fontSize: 8.5, cellPadding: 3 },
+          columnStyles: {
+            0: { cellWidth: 15, halign: "center" },
+            1: { fontStyle: "bold" },
+            2: { halign: "right" },
+            3: { halign: "right" },
+            4: { halign: "right" },
+            5: { fontStyle: "bold" },
+          },
+          margin: { left: 14, right: 14 },
+          didParseCell: (dataCell) => {
+            if (dataCell.column.index === 5 && dataCell.cell.text[0] === "Elected") {
+              dataCell.cell.styles.textColor = [16, 185, 129] as [number, number, number]; // emerald-500
+            }
+          },
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 8;
       });
-
-      autoTable(doc, {
-        startY: currentY,
-        head: [["Rank", "Candidate Name", "Yes Votes", "No Votes", "Approval Rate", "Status"]],
-        body: tableBody,
-        theme: "striped",
-        headStyles: { fillColor: [71, 85, 105] as [number, number, number], textColor: [255, 255, 255] as [number, number, number] }, // slate-600
-        styles: { fontSize: 8.5, cellPadding: 3 },
-        columnStyles: {
-          0: { cellWidth: 15, halign: "center" },
-          1: { fontStyle: "bold" },
-          2: { halign: "right" },
-          3: { halign: "right" },
-          4: { halign: "right" },
-          5: { fontStyle: "bold" },
-        },
-        margin: { left: 14, right: 14 },
-        didParseCell: (dataCell) => {
-          if (dataCell.column.index === 5 && dataCell.cell.text[0] === "Leading / Winner") {
-            dataCell.cell.styles.textColor = [16, 185, 129] as [number, number, number]; // emerald-500
-          }
-        },
-      });
-
-      currentY = (doc as any).lastAutoTable.finalY + 8;
-    });
 
     // Add page numbers footer to all pages
     const pageCount = (doc as any).internal.getNumberOfPages();
@@ -351,8 +374,17 @@ export default function ResultsPage() {
                 No candidate election results available yet.
               </div>
             ) : (
-              Object.entries(data.resultsByPosition).map(([position, candidates]) => {
-                const totalVotes = candidates.reduce((sum, c) => sum + c.votes, 0);
+              Object.entries(data.resultsByPosition)
+                .sort(([posA], [posB]) => {
+                  const idxA = POSITION_ORDER.indexOf(posA);
+                  const idxB = POSITION_ORDER.indexOf(posB);
+                  if (idxA === -1 && idxB === -1) return posA.localeCompare(posB);
+                  if (idxA === -1) return 1;
+                  if (idxB === -1) return -1;
+                  return idxA - idxB;
+                })
+                .map(([position, candidates]) => {
+                  const totalVotes = candidates.reduce((sum, c) => sum + c.votes, 0);
                 return (
                   <section
                     key={position}
@@ -408,7 +440,7 @@ export default function ResultsPage() {
                                     <h4 className="font-bold text-on-surface text-body-lg">{candidate.name}</h4>
                                     {isLeading && (
                                       <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wider">
-                                        Leading
+                                        Elected
                                       </span>
                                     )}
                                   </div>
